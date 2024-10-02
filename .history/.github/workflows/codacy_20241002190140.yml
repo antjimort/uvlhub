@@ -23,11 +23,6 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    strategy:
-      matrix: 
-        # Verificar compatibilidades del codigo con estas versiones de Python
-        python-version: [3.10, 3.11, 3.12]
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -41,18 +36,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
-    # Mira si las dependencias instaladas con requirements.txt están desactualizadas     
-    - name: Check for outdated dependencies
-      run: |
-        pip install pip-review
-        pip-review --local
         
-    # Análisis de seguridad con pip-audit
-    - name: Security analysis with pip-audit
-      run: |
-        pip install pip-audit
-        pip-audit || audit
+    - name: Check for outdated dependencies
+         
 
     - name: Upload coverage to Codacy
       run: |

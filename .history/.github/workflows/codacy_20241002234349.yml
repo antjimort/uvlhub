@@ -52,7 +52,7 @@ jobs:
     - name: Security analysis with pip-audit
       run: |
         pip install pip-audit
-        pip-audit || audit
+        pip-audit    
 
     - name: Upload coverage to Codacy
       run: |

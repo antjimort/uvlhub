@@ -48,11 +48,7 @@ jobs:
         pip install pip-review
         pip-review --local
         
-    # Análisis de seguridad con pip-audit
-    - name: Security analysis with pip-audit
-      run: |
-        pip install pip-audit
-        pip-audit || audit
+    - name: Security anal    
 
     - name: Upload coverage to Codacy
       run: |
