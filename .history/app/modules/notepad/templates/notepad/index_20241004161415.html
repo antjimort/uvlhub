@@ -1,0 +1,19 @@
+{% extends "base_template.html" %}
+
+{% block title %}View my notepads{% endblock %}
+
+{% block content %}
+
+{% if notepads %}
+
+    <ul>
+        {}
+    </ul>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('notepad.scripts') }}"></script>
+{% endblock %}

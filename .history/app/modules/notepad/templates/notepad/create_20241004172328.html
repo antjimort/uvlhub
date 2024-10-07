@@ -1,0 +1,19 @@
+{% extends 'base_template.html' %}
+
+{% block title %}Create notepad{% endblock %}
+
+{% block content %}
+
+<form method='POST' action="{{ url_for('notepad.create_notepad') }}">
+    {{ form.hidden_tag() }}
+
+    <div>
+        {{ form.title.label }}<br>
+        {{ form.title(size=32) }}
+    </div>
+    <div>
+        {{ form.body.label }}<br
+    </div>
+</form>
+
+{% endblock %}

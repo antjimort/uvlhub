@@ -1,0 +1,10 @@
+from app import db
+
+
+class Notepad(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(256), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f'Notepad<{self.id}>'

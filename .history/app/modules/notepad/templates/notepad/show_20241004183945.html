@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title  %}Notepad details{% endblock  %}
+
+{% block content %}
+
+<h1>{{ notepad.title }}</h1>
+{% endblock content %}
+
+{% block scripts %}
+    <script src="{{ url_for('notepad.scripts') }}"></script>
+{% endblock %}
