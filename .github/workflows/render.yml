@@ -26,27 +26,27 @@ jobs:
           - 3306:3306
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip 
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip 
+          pip install -r requirements.txt
 
-    - name: Run tests
-      env:
-        FLASK_ENV: testing
-        MARIADB_HOSTNAME: 127.0.0.1
-        MARIADB_PORT: 3306
-        MARIADB_TEST_DATABASE: uvlhubdb_test
-        MARIADB_USER: uvlhub_user
-        MARIADB_PASSWORD: uvlhub_password
-      run: |
-        pytest app/modules/ --ignore-glob='*selenium*'
+      - name: Run tests
+        env:
+          FLASK_ENV: testing
+          MARIADB_HOSTNAME: 127.0.0.1
+          MARIADB_PORT: 3306
+          MARIADB_TEST_DATABASE: uvlhubdb_test
+          MARIADB_USER: uvlhub_user
+          MARIADB_PASSWORD: uvlhub_password
+        run: |
+          pytest app/modules/ --ignore-glob='*selenium*'
 
   deploy:
     name: Deploy to Render
