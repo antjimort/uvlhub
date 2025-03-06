@@ -8,7 +8,6 @@ services:
     volumes:
       - ./entrypoints/production_entrypoint.sh:/app/entrypoint.sh
       - ../scripts:/app/scripts
-      - ../migrations:/app/migrations
       - ../uploads:/app/uploads
     command: [ "bash", "-c", "bash /app/entrypoint.sh" ]
     restart: always

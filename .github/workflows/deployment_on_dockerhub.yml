@@ -18,6 +18,7 @@ jobs:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
+      
       - name: Check out the repo
         uses: actions/checkout@v4
 
@@ -27,19 +28,26 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
-        env:
-          DOCKER_CLI_EXPERIMENTAL: enabled
+      - name: Generate combined Dockerfile
         run: |
-          docker build -t base -f docker/images/Dockerfile.base .
-          docker build --build-arg VERSION_TAG=${{ github.event.release.tag_name }} -t drorganvidez/uvlhub:${{ github.event.release.tag_name }} -f docker/images/Dockerfile.prod .
-  
-      - name: Push Docker image to Docker Hub
-        run: docker push drorganvidez/uvlhub:${{ github.event.release.tag_name }}
+          set -e
+          echo "### Generating unified Dockerfile ###"
 
-      - name: Tag and push latest
+          if [ ! -f docker/images/Dockerfile.base ] || [ ! -f docker/images/Dockerfile.prod ]; then
+            echo "❌ ERROR: Dockerfile.base or Dockerfile.prod not found!"
+            exit 1
+          fi
+
+          cat docker/images/Dockerfile.base > docker/images/Dockerfile.merged
+          echo "" >> docker/images/Dockerfile.merged
+          grep -v '^FROM base' docker/images/Dockerfile.prod >> docker/images/Dockerfile.merged
+
+      - name: Build and push Docker image to DockerHub
+        run: |
+          docker build --build-arg VERSION_TAG=${{ github.event.release.tag_name }} -t drorganvidez/uvlhub:${{ github.event.release.tag_name }} -f docker/images/Dockerfile.merged .
+          docker push drorganvidez/uvlhub:${{ github.event.release.tag_name }}
+
+      - name: Tag and push latest to Docker Hub
         run: |
           docker tag drorganvidez/uvlhub:${{ github.event.release.tag_name }} drorganvidez/uvlhub:latest
           docker push drorganvidez/uvlhub:latest
-        env:
-          DOCKER_CLI_EXPERIMENTAL: enabled
