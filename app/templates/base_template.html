@@ -66,6 +66,13 @@ chico sundermann">
                             class="align-middle">Team</span>
                     </a>
                 </li>
+                
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'generator.step1' else '' }}">
+                    <a class="sidebar-link" href="{{ url_for('generator.step1') }}">
+                        <i class="align-middle" data-feather="users"></i> <span
+                            class="align-middle">Generate random models</span>
+                    </a>
+                </li>
 
                 {% if current_user.is_anonymous %}
 
