@@ -205,3 +205,31 @@ a{
 .bg-primary{
     background-color: #147ABB !important;
 }
+
+.wizard-container { width: 80%; margin: 40px auto; }
+.wizard-tabs { margin: 28px 0 44px 0; }
+.wizard-tabs-list {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    border-bottom: 2px solid #e0e7ef;
+    padding: 0 0 7px 0;
+    margin: 0 0 24px 0;
+}
+.wizard-tab {
+    font-size: 17px;
+    color: #666;
+    padding: 3px 8px 7px 8px;
+    cursor: default;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-bottom 0.2s;
+    font-weight: normal;
+    background: none;
+}
+.wizard-tab.active-tab {
+    color: #2563eb;
+    font-weight: bold;
+    border-bottom: 3px solid #2563eb;
+}
