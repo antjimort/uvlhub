@@ -503,3 +503,100 @@ class FmgeneratorModel(VariabilityModel):
         self.hierarchy.validate(self.features, self.levels)
         self.constraints.validate(self.levels)
         self.attributes.validate()
+    
+    @classmethod
+    def from_flat_dict(cls, params: dict) -> "FmgeneratorModel":
+        """Build a FmgeneratorModel from the flat dictionary currently produced by UVLHub.
+
+        This keeps the UVLHub wizard temporarily compatible with the new OO model.
+        """
+        return cls(
+            num_models=params.get("NUM_MODELS", 1),
+            seed=params.get("SEED", 1),
+            ensure_satisfiable=params.get("ENSURE_SATISFIABLE", True),
+
+            naming=NamingConfig(
+                name_prefix=params.get("NAME_PREFIX", "fm"),
+                include_feature_count_suffix=params.get("INCLUDE_FEATURE_COUNT_SUFFIX", False),
+                include_constraint_count_suffix=params.get("INCLUDE_CONSTRAINT_COUNT_SUFFIX", False),
+            ),
+
+            levels=LevelConfig(
+                boolean_level=params.get("BOOLEAN_LEVEL", True),
+                arithmetic_level=params.get("ARITHMETIC_LEVEL", False),
+                type_level=params.get("TYPE_LEVEL", False),
+                group_cardinality=params.get("GROUP_CARDINALITY", False),
+                feature_cardinality=params.get("FEATURE_CARDINALITY", False),
+                aggregate_functions=params.get("AGGREGATE_FUNCTIONS", False),
+                string_constraints=params.get("STRING_CONSTRAINTS", False),
+            ),
+
+            features=FeaturesConfig(
+                min_features=params.get("MIN_FEATURES", 10),
+                max_features=params.get("MAX_FEATURES", 50),
+                dist_boolean=params.get("DIST_BOOLEAN", 0.7),
+                dist_integer=params.get("DIST_INTEGER", 0.1),
+                dist_real=params.get("DIST_REAL", 0.1),
+                dist_string=params.get("DIST_STRING", 0.1),
+                min_feature_cardinality=params.get("MIN_FEATURE_CARDINALITY", 2),
+                max_feature_cardinality=params.get("MAX_FEATURE_CARDINALITY", 5),
+                prob_feature_cardinality=params.get("PROB_FEATURE_CARDINALITY", 0.1),
+            ),
+
+            hierarchy=HierarchyConfig(
+                max_tree_depth=params.get("MAX_TREE_DEPTH", 5),
+                dist_optional=params.get("DIST_OPTIONAL", 0.3),
+                dist_mandatory=params.get("DIST_MANDATORY", 0.3),
+                dist_alternative=params.get("DIST_ALTERNATIVE", 0.2),
+                dist_or=params.get("DIST_OR", 0.2),
+                group_cardinality_min=params.get("GROUP_CARDINALITY_MIN", 1),
+                group_cardinality_max=params.get("GROUP_CARDINALITY_MAX", 6),
+                dist_group_cardinality=params.get("DIST_GROUP_CARDINALITY", 0.0),
+            ),
+
+            constraints=ConstraintsConfig(
+                min_constraints=params.get("MIN_CONSTRAINTS", 5),
+                max_constraints=params.get("MAX_CONSTRAINTS", 20),
+                extra_constraint_representativeness=params.get(
+                    "EXTRA_CONSTRAINT_REPRESENTATIVENESS",
+                    1,
+                ),
+                min_vars_per_constraint=params.get("MIN_VARS_PER_CONSTRAINT", 1),
+                max_vars_per_constraint=params.get("MAX_VARS_PER_CONSTRAINT", 3),
+
+                ctc_dist_boolean=params.get("CTC_DIST_BOOLEAN", 0.7),
+                ctc_dist_integer=params.get("CTC_DIST_INTEGER", 0.2),
+                ctc_dist_real=params.get("CTC_DIST_REAL", 0.1),
+                ctc_dist_string=params.get("CTC_DIST_STRING", 0.0),
+
+                prob_not=params.get("PROB_NOT", 0.1),
+                prob_and=params.get("PROB_AND", 0.4),
+                prob_or_ct=params.get("PROB_OR_CT", 0.2),
+                prob_implication=params.get("PROB_IMPLICATION", 0.2),
+                prob_equivalence=params.get("PROB_EQUIVALENCE", 0.2),
+
+                prob_sum=params.get("PROB_SUM", 0.7),
+                prob_substract=params.get("PROB_SUBSTRACT", 0.2),
+                prob_multiply=params.get("PROB_MULTIPLY", 0.1),
+                prob_divide=params.get("PROB_DIVIDE", 0.0),
+
+                prob_equals=params.get("PROB_EQUALS", 0.1),
+                prob_less=params.get("PROB_LESS", 0.2),
+                prob_greater=params.get("PROB_GREATER", 0.7),
+                prob_less_equals=params.get("PROB_LESS_EQUALS", 0.0),
+                prob_greater_equals=params.get("PROB_GREATER_EQUALS", 0.0),
+
+                prob_sum_function=params.get("PROB_SUM_FUNCTION", 0.0),
+                prob_avg_function=params.get("PROB_AVG_FUNCTION", 0.0),
+                prob_len_function=params.get("PROB_LEN_FUNCTION", 0.0),
+            ),
+
+            attributes=AttributesConfig(
+                random_attributes=params.get("RANDOM_ATTRIBUTES", True),
+                min_attributes=params.get("MIN_ATTRIBUTES", 1),
+                max_attributes=params.get("MAX_ATTRIBUTES", 5),
+                attributes_list=params.get("ATTRIBUTES_LIST", []),
+                attribute_attach_probs=params.get("ATTRIBUTE_ATTACH_PROBS", []),
+                attribute_in_constraints=params.get("ATTRIBUTE_IN_CONSTRAINTS", []),
+            ),
+        )
