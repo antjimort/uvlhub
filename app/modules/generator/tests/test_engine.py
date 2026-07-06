@@ -1,5 +1,5 @@
 """Engine-level unit tests: drive GenerateModels/FmgeneratorModel
-directly and assert each knob in Params actually affects the output.
+directly and assert each generator parameter actually affects the output.
 
 These tests are the backstop for "my level setting didn't do anything" bugs:
 every level and its probability knobs are asserted here in isolation. The
@@ -7,18 +7,18 @@ end-to-end wizard tests in test_wizard_outputs.py check that the frontend
 feeds the engine correctly.
 """
 
-import os
 import re
-import tempfile
 
-from fm_generator.FMGenerator.models.config import Params
-from fm_generator.FMGenerator.models.models import FmgeneratorModel
-from fm_generator.FMGenerator.operations.generate_models import GenerateModels
+from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
+from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
+
+from fm_generator.FMGenerator.models import FmgeneratorModel
+from fm_generator.FMGenerator.operations import GenerateFeatureModel
 
 
-def _base_params(**overrides) -> Params:
-    """Minimal valid Params. Overrides layer on top; dataclass __post_init__
-    still enforces (sum of DIST_* relations == 1) and similar invariants."""
+def _base_params(**overrides) -> FmgeneratorModel:
+    """Minimal valid FmgeneratorModel built from the flat params dictionary
+    currently produced by UVLHub. Overrides layer on top."""
     base = dict(
         NUM_MODELS=2,
         SEED=7,
@@ -76,16 +76,30 @@ def _base_params(**overrides) -> Params:
         MAX_ATTRIBUTES=5,
     )
     base.update(overrides)
-    return Params(**base)
+    return FmgeneratorModel.from_flat_dict(base)
 
 
-def _run(params: Params, n: int = 5) -> str:
-    """Generate `n` models and return their concatenated UVL text. Seed is
-    in Params so each call is deterministic per-config."""
-    params.NUM_MODELS = n
-    with tempfile.TemporaryDirectory() as d:
-        FmgeneratorModel(params).generate_models(d)
-        return "\n".join(open(os.path.join(d, f)).read() for f in sorted(os.listdir(d)) if f.endswith(".uvl"))
+def _prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
+    if not includes:
+        return serialized_model
+
+    include_block = "include\n" + "\n".join(f"\t{inc}" for inc in includes) + "\n"
+    return include_block + serialized_model
+
+
+def _serialize_uvl(fm: FeatureModel) -> str:
+    serialized_model = UVLWriter(None, fm).transform()
+    return _prepend_uvl_includes(serialized_model, getattr(fm, "uvl_includes", []))
+
+
+def _run(model: FmgeneratorModel, n: int = 5) -> str:
+    """Generate `n` models and return their concatenated UVL text."""
+    model.num_models = n
+
+    return "\n".join(
+        _serialize_uvl(GenerateFeatureModel(model).execute(index=index))
+        for index in range(n)
+    )
 
 
 # ── NUM_MODELS + filename suffixes ───────────────────────────────────────
@@ -93,9 +107,11 @@ def _run(params: Params, n: int = 5) -> str:
 
 def test_num_models_respected():
     p = _base_params(NUM_MODELS=7)
-    with tempfile.TemporaryDirectory() as d:
-        FmgeneratorModel(p).generate_models(d)
-        assert len([f for f in os.listdir(d) if f.endswith(".uvl")]) == 7
+    fms = [
+        GenerateFeatureModel(p).execute(index=index)
+        for index in range(p.num_models)
+    ]
+    assert len(fms) == 7
 
 
 def test_determinism_same_seed_same_output():
@@ -455,11 +471,13 @@ def test_min_max_constraints_respected():
 
 
 def test_ensure_satisfiable_runs_without_crashing():
-    """Smoke test: the retry loop must not raise on normal inputs."""
+    """Smoke test: satisfiable generation inputs must not raise."""
     p = _base_params(ENSURE_SATISFIABLE=True, NUM_MODELS=2)
-    with tempfile.TemporaryDirectory() as d:
-        fms = FmgeneratorModel(p).generate_models(d)
-        assert len(fms) == 2
+    fms = [
+        GenerateFeatureModel(p).execute(index=index)
+        for index in range(p.num_models)
+    ]
+    assert len(fms) == 2
 
 
 # ── Manual attribute mode ────────────────────────────────────────────────
@@ -491,9 +509,10 @@ def test_manual_mode_uses_attribute_in_constraints_flag():
 
 
 def test_constant_seed_and_index_determinism():
-    """GenerateModels.execute must be fully deterministic on (SEED, index)."""
+    """GenerateFeatureModel.execute must be deterministic on (seed, index)."""
     p = _base_params(SEED=42)
-    a = GenerateModels(p).execute(0)
-    b = GenerateModels(p).execute(0)
+    a = GenerateFeatureModel(p).execute(index=0)
+    b = GenerateFeatureModel(p).execute(index=0)
+
     assert [f.name for f in a.get_features()] == [f.name for f in b.get_features()]
     assert len(a.ctcs) == len(b.ctcs)

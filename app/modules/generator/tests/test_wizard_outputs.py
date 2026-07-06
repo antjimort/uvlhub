@@ -2,7 +2,7 @@
 
 Each test drives the full 6-step wizard (step1 batch → step2 levels →
 step3 tree → step4 constraints → step5 attributes → step6 output), then
-pulls the resulting Params via /generator/random/params-json and feeds
+pulls the resulting generator parameters via /generator/random/params-json and feeds
 it straight into the vendored FmgeneratorModel — the same code Pyodide
 runs in the browser. The generated UVL is parsed and the content is
 asserted against what the user selected in the wizard.
@@ -12,14 +12,15 @@ show up in the .uvl files (or be absent when you disabled its level).
 """
 
 import json
-import os
 import re
-import tempfile
 
 import pytest
 
-from fm_generator.FMGenerator.models.config import Params
-from fm_generator.FMGenerator.models.models import FmgeneratorModel
+from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
+from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
+
+from fm_generator.FMGenerator.models import FmgeneratorModel
+from fm_generator.FMGenerator.operations import GenerateFeatureModel
 
 # ── Fixtures & helpers ───────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ def _step4(*, arithmetic=False, aggregate=False, string=False, extras=None):
         **_BOOLOP_EVEN,
         "nav": "next",
     }
-    # TYPE_LEVEL implicitly forces ARITHMETIC_LEVEL on (Params.__post_init__),
+    # TYPE_LEVEL implicitly forces ARITHMETIC_LEVEL on in the generator model,
     # so a string-only test scenario still needs arithmetic probability
     # fields to satisfy the step 4 validator.
     effective_arith = arithmetic or string
@@ -198,15 +199,72 @@ def _walk_wizard(client, step1=None, step2=None, step3=None, step4=None, step5=N
     return r
 
 
-def _fetch_params_and_generate(client, n=3):
+def _prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
+    if not includes:
+        return serialized_model
+
+    include_block = "include\n" + "\n".join(f"\t{inc}" for inc in includes) + "\n"
+    return include_block + serialized_model
+
+
+def _serialize_uvl(fm: FeatureModel) -> str:
+    serialized_model = UVLWriter(None, fm).transform()
+    return _prepend_uvl_includes(serialized_model, getattr(fm, "uvl_includes", []))
+
+
+def _filename_for(model: FmgeneratorModel, fm: FeatureModel, index: int) -> str:
+    base_name = (model.naming.name_prefix or "").strip() or "fm"
+
+    include_features = model.naming.include_feature_count_suffix
+    include_constraints = model.naming.include_constraint_count_suffix
+
+    feature_count = len(list(fm.get_features()))
+    constraint_count = len(getattr(fm, "ctcs", []))
+
+    if include_features and include_constraints:
+        return f"{base_name}_{feature_count}f_{constraint_count}c.uvl"
+
+    if include_features:
+        return f"{base_name}_{feature_count}f.uvl"
+
+    if include_constraints:
+        return f"{base_name}_{constraint_count}c.uvl"
+
+    if model.num_models > 1:
+        return f"{base_name}_{index}.uvl"
+
+    return f"{base_name}.uvl"
+
+
+def _fetch_model_from_wizard(client, n: int | None = None) -> FmgeneratorModel:
     r = client.get("/generator/random/params-json")
     assert r.status_code == 200
+
     params_dict = json.loads(r.data)
-    params_dict["NUM_MODELS"] = n
-    params = Params(**params_dict)
-    with tempfile.TemporaryDirectory() as d:
-        FmgeneratorModel(params).generate_models(d)
-        return "\n".join(open(os.path.join(d, f)).read() for f in sorted(os.listdir(d)) if f.endswith(".uvl"))
+
+    if n is not None:
+        params_dict["NUM_MODELS"] = n
+
+    return FmgeneratorModel.from_flat_dict(params_dict)
+
+
+def _fetch_params_and_generate(client, n=3):
+    model = _fetch_model_from_wizard(client, n=n)
+
+    return "\n".join(
+        _serialize_uvl(GenerateFeatureModel(model).execute(index=index))
+        for index in range(model.num_models)
+    )
+
+
+def _generate_filenames(model: FmgeneratorModel) -> list[str]:
+    files = []
+
+    for index in range(model.num_models):
+        fm = GenerateFeatureModel(model).execute(index=index)
+        files.append(_filename_for(model, fm, index))
+
+    return sorted(files)
 
 
 def _iter_ctc_lines(text):
@@ -402,14 +460,12 @@ def test_filename_suffixes_applied_to_generated_files(client):
         step1=_step1(num_models="1", name_prefix="custom"),
         step6=_step6(feat_suffix=True, ctc_suffix=True),
     )
-    params = json.loads(client.get("/generator/random/params-json").data)
-    p = Params(**params)
 
-    with tempfile.TemporaryDirectory() as d:
-        FmgeneratorModel(p).generate_models(d)
-        files = sorted(os.listdir(d))
-        assert files
-        assert all(re.match(r"^custom_\d+f_\d+c\.uvl$", f) for f in files), files
+    model = _fetch_model_from_wizard(client)
+    files = _generate_filenames(model)
+
+    assert files
+    assert all(re.match(r"^custom_\d+f_\d+c\.uvl$", f) for f in files), files
 
 
 def test_vars_per_constraint_fixed_observed_in_output(client):
@@ -617,14 +673,11 @@ def test_filename_suffix_combinations(client, flags, pattern):
         step6={"nav": "next", **flags},
     )
 
-    p = json.loads(client.get("/generator/random/params-json").data)
-    params = Params(**p)
+    model = _fetch_model_from_wizard(client)
+    files = _generate_filenames(model)
 
-    with tempfile.TemporaryDirectory() as d:
-        FmgeneratorModel(params).generate_models(d)
-        files = sorted(os.listdir(d))
-        assert files
-        assert all(re.match(pattern, f) for f in files), f"files={files} pattern={pattern}"
+    assert files
+    assert all(re.match(pattern, f) for f in files), f"files={files} pattern={pattern}"
 
 
 # ── Determinism across wizard posts ─────────────────────────────────────

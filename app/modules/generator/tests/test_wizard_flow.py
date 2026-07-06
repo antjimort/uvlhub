@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from fm_generator.FMGenerator.models.config import Params
+from fm_generator.FMGenerator.models import FmgeneratorModel
 
 # Minimum valid payloads, coherent with each step's validator.
 STEP1 = {"num_models_val": "3", "seed": "42", "name_prefix": "fm"}
@@ -95,8 +95,8 @@ def test_full_happy_path_produces_valid_params(client):
     r = client.get("/generator/random/params-json")
     assert r.status_code == 200
     params = json.loads(r.data)
-    # Must survive the strict 1e-6 sum check inside Params.__post_init__.
-    Params(**params)
+    # Must survive the strict 1e-6 sum check inside FmgeneratorModel validation.
+    FmgeneratorModel.from_flat_dict(params)
 
 
 # ── Regression: 1.0007 slider sum ─────────────────────────────────────────
@@ -105,7 +105,7 @@ def test_full_happy_path_produces_valid_params(client):
 def test_parent_child_slider_sum_1p0007_renormalises(client):
     """The slider rounds each segment to 4 decimals, which can leave up to
     0.0007 residue. The route must renormalise to exactly 1.0 before
-    constructing Params."""
+    constructing FmgeneratorModel."""
     client.post("/generator/random/step1", data=STEP1)
     client.post("/generator/random/step2", data=STEP2)
     poisoned = dict(STEP3)
@@ -118,7 +118,7 @@ def test_parent_child_slider_sum_1p0007_renormalises(client):
         }
     )
     r = client.post("/generator/random/step3", data=poisoned)
-    assert r.status_code == 302  # reached step4, Params-level sum is 1.0
+    assert r.status_code == 302  # reached step4, generator-model-level sum is 1.0
 
     # Walk the rest and check total via params-json
     client.post("/generator/random/step4", data=STEP4)

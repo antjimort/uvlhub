@@ -116,7 +116,7 @@ def apply_step2_levels(params_dict, form):
     """Persist only the level toggles from step 2.
 
     Normalises the hierarchy so session state matches what
-    ``Params.__post_init__`` would produce:
+    ``FmgeneratorModel`` validation would produce:
       * TYPE_LEVEL → ARITHMETIC_LEVEL (typed attrs imply arithmetic).
       * Minor levels (feature/aggregate, string) are cleared when their
         major is off.

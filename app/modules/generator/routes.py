@@ -84,10 +84,10 @@ def step1():
         if errors:
             return render_template("generator/step1.html", current_step=1, errors=errors, values=values)
         # Persist ONLY the three fields step 1 owns. Earlier versions dumped
-        # the whole Params dataclass (including every dataclass default)
+        # the whole generator parameter set, including every model default
         # into session, which made the sidebar summary display stale
         # "defaults" for steps the user hadn't reached yet. The wrapper
-        # reconstructs Params(**dict) on the fly using its own defaults,
+        # reconstructs FmgeneratorModel.from_flat_dict(dict) on the fly using its own defaults
         # so the downstream flow doesn't need this pre-fill.
         p = session.get("params", {}) or {}
         try:
@@ -280,7 +280,7 @@ def step6():
 def get_params_json():
     params = session.get("params")
     if not params:
-        return jsonify({"error": "Params missing"}), 400
+        return jsonify({"error": "Generator parameters missing"}), 400
     return jsonify(params)
 
 
