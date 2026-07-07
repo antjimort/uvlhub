@@ -320,3 +320,63 @@ def test_step6_shows_output_options():
         assert driver.find_element(By.ID, "constraint_count_suffix")
     finally:
         close_driver(driver)
+
+
+@pytest.mark.slow
+def test_step6_generates_one_uvl_model_with_pyodide():
+    driver = initialize_driver()
+    try:
+        host = get_host_for_selenium_testing()
+        wait = WebDriverWait(driver, 30)
+        pyodide_wait = WebDriverWait(driver, 180)
+
+        driver.get(f"{host}/generator/random/step1")
+        wait.until(EC.presence_of_element_located((By.NAME, "num_models_val")))
+        _wait_for_generator_overlay_to_disappear(driver, wait)
+
+        _set_input_value(driver, "num_models_val", "1")
+        _set_input_value(driver, "seed", "123")
+        _set_input_value(driver, "name_prefix", "selenium")
+
+        for target in ("/step2", "/step3", "/step4", "/step5", "/step6"):
+            _submit_next(driver, target, wait)
+
+        pyodide_wait.until(lambda d: d.execute_script("""
+            const rt = window.generatorRuntime;
+            if (!rt || !rt.ready || !rt.fetchParams || !rt.generateOne) return false;
+            return rt.ready().then(
+                () => window.__seleniumGeneratorReady = true,
+                () => window.__seleniumGeneratorError = true
+            ), !!window.__seleniumGeneratorReady || !!window.__seleniumGeneratorError;
+        """))
+
+        assert driver.execute_script("return window.__seleniumGeneratorReady === true;")
+        assert not driver.execute_script("return window.__seleniumGeneratorError === true;")
+
+        generate_btn = wait.until(EC.element_to_be_clickable((By.ID, "generate-btn")))
+        driver.execute_script("arguments[0].click();", generate_btn)
+
+        pyodide_wait.until(
+            lambda d: d.find_element(By.ID, "gen-counter").text.strip() == "1 / 1"
+        )
+        pyodide_wait.until(
+            lambda d: "Done" in d.find_element(By.ID, "gen-panel-title").text
+        )
+
+        rows = driver.find_elements(By.CSS_SELECTOR, "#gen-results .gen-row")
+        assert len(rows) == 1
+        assert "selenium" in rows[0].text
+        assert "ok" in rows[0].text.lower()
+        assert "f /" in rows[0].text
+
+        assert driver.find_element(By.ID, "gen-actions").is_displayed()
+        assert driver.find_element(By.ID, "download-btn").is_displayed()
+
+        view_btn = driver.find_element(By.CSS_SELECTOR, "#gen-results button[aria-label='View UVL']")
+        driver.execute_script("arguments[0].click();", view_btn)
+
+        pyodide_wait.until(EC.visibility_of_element_located((By.ID, "gen-modal-host")))
+        assert "features" in driver.find_element(By.ID, "gen-modal-host").text
+
+    finally:
+        close_driver(driver)

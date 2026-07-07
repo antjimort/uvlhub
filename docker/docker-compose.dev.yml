@@ -12,6 +12,9 @@ services:
       - selenium-hub
     env_file:
       - ../.env
+    environment:
+      WORKING_DIR: /app/
+      PYTHONPATH: /app/fm_generator/src
     volumes:
       - ../:/app
       - /app/node_modules
