@@ -1,6 +1,6 @@
 import pytest
 
-from app.modules.generator.wizard_builders import (
+from app.modules.generator.services import (
     build_step3_values,
 )
 

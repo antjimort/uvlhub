@@ -1,4 +1,4 @@
-"""Engine-level unit tests: drive GenerateModels/FmgeneratorModel
+"""Engine-level unit tests: drive GenerateFeatureModel/FmgeneratorModel
 directly and assert each generator parameter actually affects the output.
 
 These tests are the backstop for "my level setting didn't do anything" bugs:

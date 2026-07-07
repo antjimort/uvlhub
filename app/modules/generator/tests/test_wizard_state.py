@@ -1,6 +1,6 @@
 from werkzeug.datastructures import MultiDict
 
-from app.modules.generator.wizard_state import (
+from app.modules.generator.services import (
     clear_step_state,
     load_step_state,
     save_step_state,

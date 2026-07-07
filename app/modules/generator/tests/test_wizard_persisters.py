@@ -1,6 +1,6 @@
 from werkzeug.datastructures import MultiDict
 
-from app.modules.generator.wizard_persisters import (
+from app.modules.generator.services import (
     apply_step2_levels,
     apply_step3_tree,
     apply_step4_constraints,

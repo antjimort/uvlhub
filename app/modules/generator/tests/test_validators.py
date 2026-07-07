@@ -1,6 +1,6 @@
 from werkzeug.datastructures import MultiDict
 
-from app.modules.generator.validators import (
+from app.modules.generator.services import (
     validate_step1_form,
     validate_step2_form,
     validate_step3_form,
