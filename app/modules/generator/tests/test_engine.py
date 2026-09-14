@@ -413,6 +413,67 @@ def test_string_level_produces_len_constraints():
     assert "len(" in body, f"no string (len) constraints emitted:\n{body}"
 
 
+def test_len_constraints_mix_with_arithmetic_but_not_with_aggregates():
+    """
+    len() expressions can participate in arithmetic operations, but they
+    must never be placed inside aggregate functions.
+    """
+    p = _base_params(
+        TYPE_LEVEL=True,
+        STRING_CONSTRAINTS=True,
+        ARITHMETIC_LEVEL=True,
+        AGGREGATE_FUNCTIONS=True,
+
+        ATTR_DIST_BOOLEAN=0.0,
+        ATTR_DIST_INTEGER=0.5,
+        ATTR_DIST_REAL=0.0,
+        ATTR_DIST_STRING=0.5,
+
+        CTC_DIST_BOOLEAN=0.0,
+        CTC_DIST_INTEGER=1.0,
+        CTC_DIST_REAL=0.0,
+        CTC_DIST_STRING=0.0,
+
+        PROB_LEN_FUNCTION=1.0,
+
+        # Force arithmetic generation
+        PROB_SUM=0.5,
+        PROB_SUBSTRACT=0.0,
+        PROB_MULTIPLY=0.0,
+        PROB_DIVIDE=0.0,
+
+        # Enable aggregates but they must not consume len()
+        PROB_SUM_FUNCTION=0.25,
+        PROB_AVG_FUNCTION=0.25,
+
+        MIN_CONSTRAINTS=20,
+        MAX_CONSTRAINTS=20,
+        MIN_ATTRIBUTES=4,
+        MAX_ATTRIBUTES=4,
+    )
+
+    text = _run(p, n=10)
+    body = "\n".join(_iter_constraint_lines(text))
+
+    assert "len(" in body, "no len() constraints generated"
+
+    # len() must appear inside arithmetic expressions
+    arithmetic_len = re.search(
+        r"(len\([^)]+\)\s*[+\-*/]\s*\w+)"
+        r"|(\w+\s*[+\-*/]\s*len\([^)]+\))",
+        body,
+    )
+
+    assert arithmetic_len, (
+        "len() never appeared combined with arithmetic operands:\n"
+        f"{body}"
+    )
+
+    # Aggregates cannot contain len()
+    assert "sum(len(" not in body
+    assert "avg(len(" not in body
+
+
 def _iter_constraint_lines(text: str):
     """Yield each constraint line across all models in `text`. Each model
     block is ``features\\n...\\nconstraints\\n<lines>``; we can't just

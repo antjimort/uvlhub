@@ -917,8 +917,16 @@ class GenerateFeatureModel:
             k=1,
         )[0]
 
-    def _build_function_node(self, function_name: str, keys: list[str]) -> Node:
+    def _build_function_node(
+        self,
+        function_name: str,
+        keys: list[str],
+    ) -> Node:
+        if len(keys) > 2:
+            keys = keys[:2]
+
         args = ", ".join(keys)
+
         return Node(f"{function_name}({args})")
 
     def _maybe_wrap_key_with_len(
@@ -958,9 +966,7 @@ class GenerateFeatureModel:
         self,
         expression: Node,
         keys: list[str],
-        len_eligible_keys: set[str] | None = None,
     ) -> Node:
-        len_eligible_keys = len_eligible_keys or set()
 
         if not self.model.levels.aggregate_functions:
             return expression
@@ -986,12 +992,10 @@ class GenerateFeatureModel:
         if aggregate_name is None:
             return expression
 
-        wrapped_keys = [
-            self._maybe_wrap_key_with_len(key, len_eligible_keys)
-            for key in keys
-        ]
-
-        return self._build_function_node(aggregate_name, wrapped_keys)
+        return self._build_function_node(
+            aggregate_name,
+            keys,
+        )
 
     def _build_arith_expr(
         self,
@@ -1012,8 +1016,16 @@ class GenerateFeatureModel:
             + self.model.constraints.prob_divide
         )
 
+        # Si hay candidatos len(), no permitimos aggregate
+        # porque produciría avg(len(...)) o sum(len(...))
+        has_len_candidate = any(
+            key in len_eligible_keys
+            for key in keys
+        )
+
         if (
             self.model.levels.aggregate_functions
+            and not has_len_candidate
             and len(keys) >= 2
             and aggregate_total > 0.0
             and binary_total <= 0.0
@@ -1021,17 +1033,25 @@ class GenerateFeatureModel:
             aggregate_name = self._pick_aggregate_name()
 
             if aggregate_name is not None:
-                wrapped_keys = [
-                    self._maybe_wrap_key_with_len(key, len_eligible_keys)
-                    for key in keys
-                ]
-                return self._build_function_node(aggregate_name, wrapped_keys)
+                return self._build_function_node(
+                    aggregate_name,
+                    keys,
+                )
 
-        expression = self._build_plain_arith_expr(keys, len_eligible_keys)
+        # Siempre construimos expresión aritmética normal.
+        # Aquí len() puede mezclarse con variables numéricas.
+        expression = self._build_plain_arith_expr(
+            keys,
+            len_eligible_keys,
+        )
+
+        # Solo aplicamos aggregate si no hay len()
+        if has_len_candidate:
+            return expression
+
         return self._maybe_wrap_with_aggregate(
             expression,
             keys,
-            len_eligible_keys,
         )
 
     def _build_numeric_predicate(
@@ -1070,8 +1090,10 @@ class GenerateFeatureModel:
         )
 
         if use_len:
-            wrapped_keys = [f"len({key})" for key in keys]
-            return self._build_numeric_predicate(wrapped_keys)
+            return self._build_numeric_predicate(
+                keys,
+                set(keys),
+            )
 
         if len(keys) == 2:
             return Node(ASTOperation.EQUALS, Node(keys[0]), Node(keys[1]))
@@ -1175,14 +1197,13 @@ class GenerateFeatureModel:
 
                     occurrences = random.randint(2, max_occurrences)
 
-                    merged_num_groups: dict[str, list[str]] = {}
+                    numeric_groups = dict(num_groups)
 
-                    for source in (num_groups, numeric_len_groups):
-                        for feature_id, values in source.items():
-                            merged_num_groups.setdefault(feature_id, []).extend(values)
+                    for feature_id, values in numeric_len_groups.items():
+                        numeric_groups.setdefault(feature_id, []).extend(values)
 
                     chosen = self._sample_keys_with_ecr(
-                        merged_num_groups,
+                        numeric_groups,
                         occurrences,
                         max_repetitions,
                         max_features_param,

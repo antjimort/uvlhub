@@ -358,6 +358,68 @@ def test_aggregate_functions_wizard_produces_sum_or_avg(client):
     assert "sum(" in body or "avg(" in body, f"no agg:\n{body}"
 
 
+def test_aggregate_functions_never_generate_more_than_two_arguments(client):
+    _walk_wizard(
+        client,
+        step2=_step2(arithmetic=True, aggregate=True),
+        step4=_step4(
+            arithmetic=True,
+            aggregate=True,
+            extras={
+                "prob_plus": "0.0",
+                "prob_minus": "0.0",
+                "prob_times": "0.0",
+                "prob_div": "0.0",
+                "prob_sum": "0.5",
+                "prob_avg": "0.5",
+                "ctc_dist_boolean": "0.0",
+                "ctc_dist_integer": "1.0",
+                "ctc_dist_real": "0.0",
+                "ctc_dist_string": "0.0",
+                "num_constraints_min": "20",
+                "num_constraints_max": "20",
+            },
+        ),
+        step5=_step5(
+            extras={
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "1.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
+                "min_attributes": "5",
+                "max_attributes": "5",
+            }
+        ),
+    )
+
+    body = "\n".join(_iter_ctc_lines(_fetch_params_and_generate(client, n=5)))
+
+    aggregate_lines = [
+        line
+        for line in body.splitlines()
+        if "sum(" in line or "avg(" in line
+    ]
+
+    assert aggregate_lines, f"no aggregate functions generated:\n{body}"
+
+    for line in aggregate_lines:
+        for function in ("sum(", "avg("):
+            if function in line:
+                start = line.index(function) + len(function)
+                end = line.index(")", start)
+
+                args = [
+                    arg.strip()
+                    for arg in line[start:end].split(",")
+                    if arg.strip()
+                ]
+
+                assert len(args) <= 2, (
+                    f"invalid aggregate function with more than two "
+                    f"arguments: {line}"
+                )
+
+
 def test_string_level_wizard_produces_string_constraints(client):
     _walk_wizard(
         client,
