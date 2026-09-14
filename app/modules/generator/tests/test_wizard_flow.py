@@ -185,6 +185,62 @@ def test_back_nav_from_step4_preserves_tree_shape(client):
     assert b"17" in r.data
 
 
+def test_step4_configuration_survives_forward_and_back_navigation(client):
+    """Step 4 constraint configuration must survive leaving the step and
+    coming back later. Users should only lose values when they explicitly
+    modify them, not because of wizard navigation."""
+    client.post("/generator/random/step1", data=STEP1)
+    client.post("/generator/random/step2", data={
+        "arithmetic_level": "on",
+        "type_level": "on",
+        "aggregate_functions": "on",
+        "string_constraints": "on",
+    })
+    client.post("/generator/random/step3", data=STEP3)
+
+    custom_step4 = {
+        **STEP4,
+
+        "prob_plus": "0.55",
+        "prob_minus": "0.15",
+        "prob_times": "0.10",
+        "prob_div": "0.05",
+        "prob_sum": "0.10",
+        "prob_avg": "0.05",
+
+        "prob_eq": "0.25",
+        "prob_lt": "0.25",
+        "prob_gt": "0.25",
+        "prob_leq": "0.15",
+        "prob_geq": "0.10",
+
+        "prob_len": "0.90",
+
+        "ctc_dist_boolean": "0.7",
+        "ctc_dist_integer": "0.2",
+        "ctc_dist_real": "0.1",
+        "ctc_dist_string": "0.0",
+    }
+
+    # Step 4 -> Step 5
+    r = client.post("/generator/random/step4", data=custom_step4)
+    assert r.status_code == 302
+    assert r.location.endswith("/step5")
+
+    # Step 5 -> Step 4
+    r = client.post("/generator/random/step5", data={**STEP5, "nav": "prev"})
+    assert r.status_code == 302
+    assert r.location.endswith("/step4")
+
+    # The form should be restored with the previous values
+    r = client.get("/generator/random/step4")
+    assert r.status_code == 200
+
+    assert b'value="0.55"' in r.data  # prob_plus
+    assert b'value="0.15"' in r.data  # prob_minus
+    assert b'value="0.90"' in r.data  # prob_len
+
+
 def test_back_nav_from_step6_preserves_output_options(client):
     _walk_happy_path(client, step6={"ensure_satisfiable": "on", "feature_count_suffix": "on", "nav": "prev"})
     params = json.loads(client.get("/generator/random/params-json").data)

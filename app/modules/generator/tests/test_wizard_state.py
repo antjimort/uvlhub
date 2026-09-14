@@ -62,3 +62,36 @@ def test_clear_step_state_only_removes_target_step(test_client):
 
         assert "3" not in session["wizard"]
         assert session["wizard"]["2"]["arithmetic_level"] is True
+
+
+def test_step_state_is_preserved_after_returning_to_previous_step(test_client):
+    with test_client.application.test_request_context():
+        from flask import session
+
+        session["wizard"] = {}
+
+        form = MultiDict({
+            "prob_plus": "0.5",
+            "prob_minus": "0.3",
+            "prob_times": "0.2",
+            "prob_div": "0.0",
+            "prob_len": "0.9",
+        })
+
+        save_step_state(4, form)
+
+        values = load_step_state(
+            4,
+            {
+                "prob_plus": "0.7",
+                "prob_minus": "0.2",
+                "prob_times": "0.1",
+                "prob_div": "0.0",
+                "prob_len": "0.7",
+            },
+        )
+
+        assert values["prob_plus"] == "0.5"
+        assert values["prob_minus"] == "0.3"
+        assert values["prob_times"] == "0.2"
+        assert values["prob_len"] == "0.9"

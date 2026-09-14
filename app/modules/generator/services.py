@@ -1230,15 +1230,12 @@ class GeneratorWizardService:
         session["params"] = params_dict
 
         if nav == "prev":
-            clear_step_state(2)
             return GeneratorWizardService._redirect("generator.step1")
 
         errors, values = validate_step2_form(form)
 
         if errors:
             return GeneratorWizardService._render_step(2, values, errors)
-
-        clear_step_state(2)
 
         return GeneratorWizardService._redirect("generator.step3")
 
@@ -1265,7 +1262,6 @@ class GeneratorWizardService:
         if nav == "prev":
             apply_step3_tree(params_dict, form)
             session["params"] = params_dict
-            clear_step_state(3)
             return GeneratorWizardService._redirect("generator.step2")
 
         errors, values = validate_step3_form(form, params_dict)
@@ -1276,7 +1272,6 @@ class GeneratorWizardService:
 
         apply_step3_tree(params_dict, form)
         session["params"] = params_dict
-        clear_step_state(3)
 
         return GeneratorWizardService._redirect("generator.step4")
 
@@ -1303,7 +1298,6 @@ class GeneratorWizardService:
         if nav == "prev":
             apply_step4_constraints(params_dict, form)
             session["params"] = params_dict
-            clear_step_state(4)
             return GeneratorWizardService._redirect("generator.step3")
 
         max_features = int(params_dict.get("MAX_FEATURES", 10000))
@@ -1315,7 +1309,6 @@ class GeneratorWizardService:
 
         apply_step4_constraints(params_dict, form)
         session["params"] = params_dict
-        clear_step_state(4)
 
         return GeneratorWizardService._redirect("generator.step5")
 
@@ -1347,7 +1340,6 @@ class GeneratorWizardService:
         if nav == "prev":
             apply_step5_attributes(params_dict, form)
             session["params"] = params_dict
-            clear_step_state(5)
             return GeneratorWizardService._redirect("generator.step4")
 
         errors, values = validate_step5_form(form, params_dict)
@@ -1362,7 +1354,6 @@ class GeneratorWizardService:
 
         apply_step5_attributes(params_dict, form)
         session["params"] = params_dict
-        clear_step_state(5)
 
         return GeneratorWizardService._redirect("generator.step6")
 
@@ -1390,10 +1381,7 @@ class GeneratorWizardService:
         session["params"] = params_dict
 
         if nav == "prev":
-            clear_step_state(6)
             return GeneratorWizardService._redirect("generator.step5")
-
-        clear_step_state(6)
 
         return GeneratorWizardService._redirect("generator.step6")
 
