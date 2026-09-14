@@ -13,12 +13,14 @@ show up in the .uvl files (or be absent when you disabled its level).
 
 import json
 import re
-
+from pathlib import Path
 import pytest
 
 from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
-
+from flamapy.core.discover import DiscoverMetamodels
+from flamapy.metamodels.fm_metamodel.transformations.uvl_reader import UVLReader
+from app.modules.generator.assets.js.fmgen_wrapper import _build_one
 from fm_generator.FMGenerator.models import FmgeneratorModel
 from fm_generator.FMGenerator.operations import GenerateFeatureModel
 
@@ -1005,3 +1007,77 @@ def test_everything_on_every_family_represented(client):
         ]
     )
     assert fams >= 3, f"only {fams} families present"
+
+
+def test_generated_uvl_can_be_parsed_and_is_satisfiable(client, tmp_path):
+    """
+    Generated UVL files must be readable again by UVLReader and represent
+    satisfiable feature models.
+
+    This closes the gap where previous tests only checked the textual output
+    using regular expressions.
+    """
+
+    _walk_wizard(
+        client,
+        step2=_step2(
+            arithmetic=True,
+            type_=True,
+            aggregate=True,
+            string_ctc=True,
+            feat_card=True,
+            group_card=True,
+        ),
+        step3=_step3(
+            group_card=True,
+            feat_card=True,
+            extras={
+                "num_features_min": "10",
+                "num_features_max": "15",
+            },
+        ),
+        step4=_step4(
+            arithmetic=True,
+            aggregate=True,
+            string=True,
+            extras={
+                "num_constraints_min": "5",
+                "num_constraints_max": "5",
+            },
+        ),
+        step5=_step5(
+            extras={
+                "min_attributes": "3",
+                "max_attributes": "5",
+                "dist_boolean_atr": "0.25",
+                "dist_integer_atr": "0.25",
+                "dist_real_atr": "0.25",
+                "dist_string_atr": "0.25",
+            }
+        ),
+        step6=_step6(
+            ensure_satisfiable=True
+        ),
+    )
+
+    model = _fetch_model_from_wizard(client, n=1)
+    
+    generated = _build_one(model, 0)
+
+    uvl_text = _serialize_uvl(generated)
+    uvl_path = tmp_path / "generated_model.uvl"
+    uvl_path.write_text(uvl_text, encoding="utf-8")
+
+    parsed_model = UVLReader(str(uvl_path)).transform()
+
+    assert parsed_model is not None
+    assert len(list(parsed_model.get_features())) > 0
+
+    discover = DiscoverMetamodels()
+
+    result = discover.use_operation_from_vm(
+        "PySATSatisfiable",
+        parsed_model
+    )
+
+    assert result
