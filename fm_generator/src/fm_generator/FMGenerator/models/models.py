@@ -370,6 +370,11 @@ class AttributesConfig:
     min_attributes: int | None = 1
     max_attributes: int | None = 5
 
+    dist_boolean_atr: float = 0.7
+    dist_integer_atr: float = 0.1
+    dist_real_atr: float = 0.1
+    dist_string_atr: float = 0.1
+
     attributes_list: list[Attribute | dict[str, Any]] = field(default_factory=list)
     attribute_attach_probs: list[float] = field(default_factory=list)
     attribute_in_constraints: list[bool] = field(default_factory=list)
@@ -397,8 +402,38 @@ class AttributesConfig:
             for value in self.attribute_in_constraints
         ]
 
+        self.dist_boolean_atr = _as_float(
+            self.dist_boolean_atr,
+            0.7,
+        )
+
+        self.dist_integer_atr = _as_float(
+            self.dist_integer_atr,
+            0.1,
+        )
+
+        self.dist_real_atr = _as_float(
+            self.dist_real_atr,
+            0.1,
+        )
+
+        self.dist_string_atr = _as_float(
+            self.dist_string_atr,
+            0.1,
+        )
+
     def validate(self) -> None:
         if self.random_attributes:
+            _validate_distribution(
+                [
+                    self.dist_boolean_atr,
+                    self.dist_integer_atr,
+                    self.dist_real_atr,
+                    self.dist_string_atr,
+                ],
+                "[ERROR] Attribute type probabilities must sum to 1.0",
+            )
+
             if self.min_attributes is None or self.max_attributes is None:
                 raise ValueError(
                     "[ERROR] min_attributes and max_attributes are required in random mode."
@@ -534,10 +569,10 @@ class FmgeneratorModel(VariabilityModel):
             features=FeaturesConfig(
                 min_features=params.get("MIN_FEATURES", 10),
                 max_features=params.get("MAX_FEATURES", 50),
-                dist_boolean=params.get("DIST_BOOLEAN", 0.7),
-                dist_integer=params.get("DIST_INTEGER", 0.1),
-                dist_real=params.get("DIST_REAL", 0.1),
-                dist_string=params.get("DIST_STRING", 0.1),
+                dist_boolean=params.get("FEATURE_DIST_BOOLEAN", 0.7),
+                dist_integer=params.get("FEATURE_DIST_INTEGER", 0.1),
+                dist_real=params.get("FEATURE_DIST_REAL", 0.1),
+                dist_string=params.get("FEATURE_DIST_STRING", 0.1),
                 min_feature_cardinality=params.get("MIN_FEATURE_CARDINALITY", 2),
                 max_feature_cardinality=params.get("MAX_FEATURE_CARDINALITY", 5),
                 prob_feature_cardinality=params.get("PROB_FEATURE_CARDINALITY", 0.1),
@@ -595,6 +630,10 @@ class FmgeneratorModel(VariabilityModel):
                 random_attributes=params.get("RANDOM_ATTRIBUTES", True),
                 min_attributes=params.get("MIN_ATTRIBUTES", 1),
                 max_attributes=params.get("MAX_ATTRIBUTES", 5),
+                dist_boolean_atr=params.get("ATTR_DIST_BOOLEAN", 0.7),
+                dist_integer_atr=params.get("ATTR_DIST_INTEGER", 0.1),
+                dist_real_atr=params.get("ATTR_DIST_REAL", 0.1),
+                dist_string_atr=params.get("ATTR_DIST_STRING", 0.1),
                 attributes_list=params.get("ATTRIBUTES_LIST", []),
                 attribute_attach_probs=params.get("ATTRIBUTE_ATTACH_PROBS", []),
                 attribute_in_constraints=params.get("ATTRIBUTE_IN_CONSTRAINTS", []),

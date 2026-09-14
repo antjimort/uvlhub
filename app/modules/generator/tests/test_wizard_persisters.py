@@ -83,16 +83,21 @@ def test_apply_step5_random_attrs_normalizes_distribution():
             "random_attributes": "on",
             "min_attributes": "1",
             "max_attributes": "4",
-            "dist_boolean": "1",
-            "dist_integer": "1",
-            "dist_real": "1",
-            "dist_string": "1",
+            "dist_boolean_atr": "1",
+            "dist_integer_atr": "1",
+            "dist_real_atr": "1",
+            "dist_string_atr": "1",
         }
     )
 
     apply_step5_attributes(params, form)
 
-    total = params["DIST_BOOLEAN"] + params["DIST_INTEGER"] + params["DIST_REAL"] + params["DIST_STRING"]
+    total = (
+        params["ATTR_DIST_BOOLEAN"]
+        + params["ATTR_DIST_INTEGER"]
+        + params["ATTR_DIST_REAL"]
+        + params["ATTR_DIST_STRING"]
+    )
 
     assert total == 1.0
 
@@ -146,7 +151,7 @@ def test_apply_step5_masks_unavailable_attribute_types_when_levels_are_off():
 
     apply_step5_attributes(params, form)
 
-    assert params["DIST_BOOLEAN"] == 1.0
-    assert params["DIST_INTEGER"] == 0.0
-    assert params["DIST_REAL"] == 0.0
-    assert params["DIST_STRING"] == 0.0
+    assert params["ATTR_DIST_BOOLEAN"] == 1.0
+    assert params["ATTR_DIST_INTEGER"] == 0.0
+    assert params["ATTR_DIST_REAL"] == 0.0
+    assert params["ATTR_DIST_STRING"] == 0.0

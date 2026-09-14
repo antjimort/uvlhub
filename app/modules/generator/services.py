@@ -62,10 +62,17 @@ ctc_dist_keys = [
 ]
 
 attribute_dist_keys = [
-    "DIST_BOOLEAN",
-    "DIST_INTEGER",
-    "DIST_REAL",
-    "DIST_STRING",
+    "ATTR_DIST_BOOLEAN",
+    "ATTR_DIST_INTEGER",
+    "ATTR_DIST_REAL",
+    "ATTR_DIST_STRING",
+]
+
+feature_dist_keys = [
+    "FEATURE_DIST_BOOLEAN",
+    "FEATURE_DIST_INTEGER",
+    "FEATURE_DIST_REAL",
+    "FEATURE_DIST_STRING",
 ]
 
 step4_ui_defaults = {
@@ -223,7 +230,25 @@ def apply_step3_tree(params_dict, form):
     params_dict["MIN_FEATURES"] = int(form.get("num_features_min", 1))
     params_dict["MAX_FEATURES"] = int(form.get("num_features_max", 10))
     params_dict["MAX_TREE_DEPTH"] = int(form.get("max_tree_depth", 5))
+    params_dict["FEATURE_DIST_BOOLEAN"] = safe_float(
+        form.get("dist_boolean"),
+        0.7,
+    )
 
+    params_dict["FEATURE_DIST_INTEGER"] = safe_float(
+        form.get("dist_integer"),
+        0.1,
+    )
+
+    params_dict["FEATURE_DIST_REAL"] = safe_float(
+        form.get("dist_real"),
+        0.1,
+    )
+
+    params_dict["FEATURE_DIST_STRING"] = safe_float(
+        form.get("dist_string"),
+        0.1,
+    )
     params_dict["DIST_OPTIONAL"] = safe_float(form.get("dist_optional"), 0.3)
     params_dict["DIST_MANDATORY"] = safe_float(form.get("dist_mandatory"), 0.3)
     params_dict["DIST_ALTERNATIVE"] = safe_float(form.get("dist_alternative"), 0.2)
@@ -328,16 +353,21 @@ def apply_step5_attributes(params_dict, form):
         arith_on = bool(params_dict.get("ARITHMETIC_LEVEL", False))
         type_on = bool(params_dict.get("TYPE_LEVEL", False))
         dist = {
-            "DIST_BOOLEAN": safe_float(form.get("dist_boolean"), 0.7),
-            "DIST_INTEGER": safe_float(form.get("dist_integer"), 0.0) if arith_on else 0.0,
-            "DIST_REAL": safe_float(form.get("dist_real"), 0.0) if arith_on else 0.0,
-            "DIST_STRING": safe_float(form.get("dist_string"), 0.0) if type_on else 0.0,
+            "ATTR_DIST_BOOLEAN": safe_float(form.get("dist_boolean_atr"), 0.7),
+            "ATTR_DIST_INTEGER": safe_float(form.get("dist_integer_atr"), 0.0) if arith_on else 0.0,
+            "ATTR_DIST_REAL": safe_float(form.get("dist_real_atr"), 0.0) if arith_on else 0.0,
+            "ATTR_DIST_STRING": safe_float(form.get("dist_string_atr"), 0.0) if type_on else 0.0,
         }
         params_dict.update(dist)
+        # Backwards compatibility with old parameter names
+        params_dict["DIST_BOOLEAN"] = params_dict["ATTR_DIST_BOOLEAN"]
+        params_dict["DIST_INTEGER"] = params_dict["ATTR_DIST_INTEGER"]
+        params_dict["DIST_REAL"] = params_dict["ATTR_DIST_REAL"]
+        params_dict["DIST_STRING"] = params_dict["ATTR_DIST_STRING"]
         normalize_distribution(
             params_dict,
             attribute_dist_keys,
-            fallback_key="DIST_BOOLEAN",
+            fallback_key="ATTR_DIST_BOOLEAN",
         )
     else:
         attrs, probs, in_ctc = collect_manual_attributes(form, params_dict)
@@ -475,6 +505,25 @@ def build_step3_values(params_dict):
         "num_features_min": params_dict.get("MIN_FEATURES", 10),
         "num_features_max": params_dict.get("MAX_FEATURES", 50),
         "max_tree_depth": params_dict.get("MAX_TREE_DEPTH", 5),
+        "dist_boolean": params_dict.get(
+            "FEATURE_DIST_BOOLEAN",
+            0.7,
+        ),
+
+        "dist_integer": params_dict.get(
+            "FEATURE_DIST_INTEGER",
+            0.1,
+        ),
+
+        "dist_real": params_dict.get(
+            "FEATURE_DIST_REAL",
+            0.1,
+        ),
+
+        "dist_string": params_dict.get(
+            "FEATURE_DIST_STRING",
+            0.1,
+        ),
         "dist_optional": params_dict.get("DIST_OPTIONAL", 0.3),
         "dist_mandatory": params_dict.get("DIST_MANDATORY", 0.3),
         "dist_alternative": params_dict.get("DIST_ALTERNATIVE", 0.2),
@@ -578,12 +627,15 @@ def build_step5_values(params_dict):
         "min_attributes": params_dict.get("MIN_ATTRIBUTES", 1),
         "max_attributes": params_dict.get("MAX_ATTRIBUTES", 5),
         "attributes_list": params_dict.get("ATTRIBUTES_LIST", []),
-        "dist_boolean": params_dict.get("DIST_BOOLEAN", 0.7),
-        "dist_integer": params_dict.get("DIST_INTEGER", 0.1),
-        "dist_real": params_dict.get("DIST_REAL", 0.1),
-        "dist_string": params_dict.get("DIST_STRING", 0.1),
+
+        "dist_boolean_atr": params_dict.get("ATTR_DIST_BOOLEAN", 0.7),
+        "dist_integer_atr": params_dict.get("ATTR_DIST_INTEGER", 0.1),
+        "dist_real_atr": params_dict.get("ATTR_DIST_REAL", 0.1),
+        "dist_string_atr": params_dict.get("ATTR_DIST_STRING", 0.1),
+
         "attr_dist_sum": "1.0000",
     }
+
     return load_step_state(5, defaults)
 
 
@@ -998,10 +1050,10 @@ def validate_step5_form(form, params_dict=None):
 
         # Attribute-type distribution
         dist_fields = [
-            ("dist_boolean", True),
-            ("dist_integer", arith_on),
-            ("dist_real", arith_on),
-            ("dist_string", type_on),
+            ("dist_boolean_atr", True),
+            ("dist_integer_atr", arith_on),
+            ("dist_real_atr", arith_on),
+            ("dist_string_atr", type_on),
         ]
         active_total = 0.0
         for field, is_active in dist_fields:

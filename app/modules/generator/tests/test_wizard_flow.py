@@ -44,10 +44,10 @@ STEP5 = {
     "random_attributes": "on",
     "min_attributes": "1",
     "max_attributes": "3",
-    "dist_boolean": "1.0",
-    "dist_integer": "0.0",
-    "dist_real": "0.0",
-    "dist_string": "0.0",
+    "dist_boolean_atr": "1.0",
+    "dist_integer_atr": "0.0",
+    "dist_real_atr": "0.0",
+    "dist_string_atr": "0.0",
     "nav": "next",
 }
 STEP6 = {"nav": "next"}

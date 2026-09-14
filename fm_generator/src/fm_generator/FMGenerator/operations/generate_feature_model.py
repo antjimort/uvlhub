@@ -293,10 +293,10 @@ class GenerateFeatureModel:
     def _pick_random_attribute_type(self) -> str:
         attribute_types = ["boolean", "integer", "real", "string"]
         weights = [
-            self.model.features.dist_boolean,
-            self.model.features.dist_integer,
-            self.model.features.dist_real,
-            self.model.features.dist_string,
+            self.model.attributes.dist_boolean_atr,
+            self.model.attributes.dist_integer_atr,
+            self.model.attributes.dist_real_atr,
+            self.model.attributes.dist_string_atr,
         ]
 
         if sum(weights) <= 0.0:
@@ -318,8 +318,8 @@ class GenerateFeatureModel:
 
         required_numeric_attributes = 0
         numeric_weight = (
-            self.model.features.dist_integer
-            + self.model.features.dist_real
+            self.model.attributes.dist_integer_atr
+            + self.model.attributes.dist_real_atr
         )
 
         if self.model.levels.arithmetic_level and numeric_weight > 0.0:
@@ -342,8 +342,8 @@ class GenerateFeatureModel:
             if index < required_numeric_attributes:
                 numeric_types = ["integer", "real"]
                 numeric_weights = [
-                    self.model.features.dist_integer,
-                    self.model.features.dist_real,
+                    self.model.attributes.dist_integer_atr,
+                    self.model.attributes.dist_real_atr,
                 ]
 
                 attribute_type = random.choices(

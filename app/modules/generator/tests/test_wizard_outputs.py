@@ -161,10 +161,10 @@ def _step5(*, extras=None):
         "random_attributes": "on",
         "min_attributes": "2",
         "max_attributes": "4",
-        "dist_boolean": "1.0",
-        "dist_integer": "0.0",
-        "dist_real": "0.0",
-        "dist_string": "0.0",
+        "dist_boolean_atr": "1.0",
+        "dist_integer_atr": "0.0",
+        "dist_real_atr": "0.0",
+        "dist_string_atr": "0.0",
         "nav": "next",
     }
     if extras:
@@ -308,10 +308,10 @@ def test_arithmetic_level_wizard_produces_arithmetic_constraints(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.0",
-                "dist_integer": "1.0",
-                "dist_real": "0.0",
-                "dist_string": "0.0",
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "1.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
                 "min_attributes": "3",
                 "max_attributes": "4",
             }
@@ -345,10 +345,10 @@ def test_aggregate_functions_wizard_produces_sum_or_avg(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.0",
-                "dist_integer": "1.0",
-                "dist_real": "0.0",
-                "dist_string": "0.0",
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "1.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
                 "min_attributes": "3",
                 "max_attributes": "4",
             }
@@ -373,10 +373,10 @@ def test_string_level_wizard_produces_string_constraints(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.0",
-                "dist_integer": "0.0",
-                "dist_real": "0.0",
-                "dist_string": "1.0",
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "0.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "1.0",
                 "min_attributes": "3",
                 "max_attributes": "4",
             }
@@ -495,10 +495,10 @@ def test_ctc_dist_weights_force_string(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.0",
-                "dist_integer": "0.0",
-                "dist_real": "0.0",
-                "dist_string": "1.0",
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "0.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "1.0",
                 "min_attributes": "3",
                 "max_attributes": "4",
             }
@@ -619,10 +619,42 @@ def test_attribute_fixed_count_observed(client, fixed):
 @pytest.mark.parametrize(
     "dist,kind",
     [
-        ({"dist_boolean": "1.0", "dist_integer": "0.0", "dist_real": "0.0", "dist_string": "0.0"}, "boolean"),
-        ({"dist_boolean": "0.0", "dist_integer": "1.0", "dist_real": "0.0", "dist_string": "0.0"}, "integer"),
-        ({"dist_boolean": "0.0", "dist_integer": "0.0", "dist_real": "1.0", "dist_string": "0.0"}, "real"),
-        ({"dist_boolean": "0.0", "dist_integer": "0.0", "dist_real": "0.0", "dist_string": "1.0"}, "string"),
+        (
+            {
+                "dist_boolean_atr": "1.0",
+                "dist_integer_atr": "0.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
+            },
+            "boolean",
+        ),
+        (
+            {
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "1.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
+            },
+            "integer",
+        ),
+        (
+            {
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "0.0",
+                "dist_real_atr": "1.0",
+                "dist_string_atr": "0.0",
+            },
+            "real",
+        ),
+        (
+            {
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "0.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "1.0",
+            },
+            "string",
+        ),
     ],
 )
 def test_attribute_type_dominance(client, dist, kind):
@@ -752,10 +784,10 @@ def test_back_navigation_preserves_all_choices(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.4",
-                "dist_integer": "0.3",
-                "dist_real": "0.3",
-                "dist_string": "0.0",
+                "dist_boolean_atr": "0.4",
+                "dist_integer_atr": "0.3",
+                "dist_real_atr": "0.3",
+                "dist_string_atr": "0.0",
                 "min_attributes": "3",
                 "max_attributes": "5",
             }
@@ -777,7 +809,7 @@ def test_back_navigation_preserves_all_choices(client):
     assert params["MIN_VARS_PER_CONSTRAINT"] == 2
     assert params["MIN_ATTRIBUTES"] == 3
     assert params["MAX_ATTRIBUTES"] == 5
-    assert params["DIST_INTEGER"] == pytest.approx(0.3)
+    assert params["ATTR_DIST_INTEGER"] == pytest.approx(0.3)
     assert params["ENSURE_SATISFIABLE"] is True
     assert params["INCLUDE_FEATURE_COUNT_SUFFIX"] is True
 
@@ -822,10 +854,10 @@ def test_everything_on_every_family_represented(client):
         ),
         step5=_step5(
             extras={
-                "dist_boolean": "0.25",
-                "dist_integer": "0.25",
-                "dist_real": "0.25",
-                "dist_string": "0.25",
+                "dist_boolean_atr": "0.25",
+                "dist_integer_atr": "0.25",
+                "dist_real_atr": "0.25",
+                "dist_string_atr": "0.25",
                 "min_attributes": "5",
                 "max_attributes": "8",
             }

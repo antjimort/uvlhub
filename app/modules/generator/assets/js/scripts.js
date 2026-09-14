@@ -539,11 +539,19 @@ const CTC_DIST_SEGMENTS = [
     { id: "ctc_dist_string",  label: "String",  color: "#181c32" },
 ];
 
-const ATTR_DIST_SEGMENTS = [
+const TYPE_DIST_SEGMENTS = [
     { id: "dist_boolean", label: "Boolean", color: "#5e6278" },
     { id: "dist_integer", label: "Integer", color: "#3f4254" },
     { id: "dist_real",    label: "Real",    color: "#2b2b40" },
     { id: "dist_string",  label: "String",  color: "#181c32" },
+];
+
+
+const ATTR_DIST_SEGMENTS = [
+    { id: "dist_boolean_atr", label: "Boolean", color: "#5e6278" },
+    { id: "dist_integer_atr", label: "Integer", color: "#3f4254" },
+    { id: "dist_real_atr",    label: "Real",    color: "#2b2b40" },
+    { id: "dist_string_atr",  label: "String",  color: "#181c32" },
 ];
 
 function initAllDistributionControls() {
@@ -552,7 +560,16 @@ function initAllDistributionControls() {
     initDistributionControl({ sliderId: "arith_slider",      allSegments: ARITH_OPS_SEGMENTS });
     initDistributionControl({ sliderId: "cmp_slider",        allSegments: CMP_OPS_SEGMENTS });
     initDistributionControl({ sliderId: "ctc_dist_slider",   allSegments: CTC_DIST_SEGMENTS });
-    initDistributionControl({ sliderId: "attr_dist_slider",  allSegments: ATTR_DIST_SEGMENTS });
+
+    initDistributionControl({ 
+        sliderId: "type_dist_slider",
+        allSegments: TYPE_DIST_SEGMENTS
+    });
+
+    initDistributionControl({ 
+        sliderId: "attr_dist_slider",
+        allSegments: ATTR_DIST_SEGMENTS
+    });
 }
 
 function initStepHelpers() {
