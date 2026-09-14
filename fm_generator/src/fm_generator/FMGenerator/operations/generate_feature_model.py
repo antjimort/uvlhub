@@ -853,6 +853,9 @@ class GenerateFeatureModel:
         if not keys:
             return None
 
+        # Avoid trivial boolean constraints such as (F1 == F1)
+        keys = list(dict.fromkeys(keys))
+
         literals = [self._maybe_not(Node(key)) for key in keys]
 
         if len(literals) == 1:
@@ -1064,9 +1067,20 @@ class GenerateFeatureModel:
 
         len_eligible_keys = len_eligible_keys or set()
 
-        split = random.randint(1, len(keys) - 1)
-        left_keys = keys[:split]
-        right_keys = keys[split:]
+        # Avoid trivial comparisons such as (F2 < F2).
+        # The same key can appear due to ECR, but both sides of a
+        # comparison must reference different operands.
+        unique_keys = list(dict.fromkeys(keys))
+
+        if len(unique_keys) < 2:
+            return None
+
+        random.shuffle(unique_keys)
+
+        split = random.randint(1, len(unique_keys) - 1)
+
+        left_keys = unique_keys[:split]
+        right_keys = unique_keys[split:]
 
         if not left_keys or not right_keys:
             return None

@@ -321,6 +321,76 @@ def test_arithmetic_level_wizard_produces_arithmetic_constraints(client):
     assert re.search(r"\s[+\-*/]\s", body), f"no arith ctc:\n{body}"
 
 
+def test_arithmetic_constraints_do_not_compare_same_expression(client):
+    """
+    Generated arithmetic constraints must not compare the same expression
+    on both sides of a comparator.
+
+    Examples that must never appear:
+        F1 < F1
+        F2.Attr0 >= F2.Attr0
+        len(F3) == len(F3)
+    """
+    _walk_wizard(
+        client,
+        step2=_step2(arithmetic=True),
+        step3=_step3(
+            extras={
+                "num_features_min": "15",
+                "num_features_max": "20",
+            }
+        ),
+        step4=_step4(
+            arithmetic=True,
+            extras={
+                "num_constraints_min": "20",
+                "num_constraints_max": "20",
+
+                "ctc_dist_boolean": "0.0",
+                "ctc_dist_integer": "1.0",
+                "ctc_dist_real": "0.0",
+                "ctc_dist_string": "0.0",
+
+                "prob_eq": "0.2",
+                "prob_lt": "0.2",
+                "prob_gt": "0.2",
+                "prob_leq": "0.2",
+                "prob_geq": "0.2",
+            },
+        ),
+        step5=_step5(
+            extras={
+                "dist_boolean_atr": "0.0",
+                "dist_integer_atr": "1.0",
+                "dist_real_atr": "0.0",
+                "dist_string_atr": "0.0",
+                "min_attributes": "5",
+                "max_attributes": "5",
+            }
+        ),
+    )
+
+    body = "\n".join(
+        _iter_ctc_lines(
+            _fetch_params_and_generate(client, n=5)
+        )
+    )
+
+    forbidden_patterns = [
+        r"\b(F\d+(?:\.Attr\d+)?)\s*(==|<|>|<=|>=)\s*\1\b",
+        r"\blen\((F\d+(?:\.Attr\d+)?)\)\s*(==|<|>|<=|>=)\s*len\(\1\)",
+    ]
+
+    for pattern in forbidden_patterns:
+        match = re.search(pattern, body)
+
+        assert not match, (
+            "Found trivial self-comparison in generated constraints:\n"
+            f"{match.group(0)}\n\n"
+            f"Full constraints:\n{body}"
+        )
+
+
 def test_aggregate_functions_wizard_produces_sum_or_avg(client):
     _walk_wizard(
         client,
