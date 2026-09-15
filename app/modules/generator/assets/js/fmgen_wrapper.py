@@ -14,7 +14,7 @@ from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 from fm_generator.FMGenerator.models import FmgeneratorModel
 from fm_generator.FMGenerator.operations import GenerateFeatureModel
 
-SATISFIABILITY_MAX_ATTEMPTS = 30
+SATISFIABILITY_MAX_ATTEMPTS = 20
 
 
 def _prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
@@ -71,9 +71,9 @@ def _run_flamapy_satisfiability(fm: FeatureModel) -> bool:
         if missing in {"pysat", "pycryptosat"}:
             print(
                 "[SAT WARNING] PySAT backend is not available in this runtime; "
-                "continuing without SAT certification."
+                "SAT certification skipped."
             )
-            return True
+            return False
 
         raise
 
@@ -83,9 +83,9 @@ def _run_flamapy_satisfiability(fm: FeatureModel) -> bool:
         if "No module named 'pysat'" in msg or "No module named pysat" in msg:
             print(
                 "[SAT WARNING] PySAT backend is not available in this runtime; "
-                "continuing without SAT certification."
+                "SAT certification skipped."
             )
-            return True
+            return False
 
         print(f"[SAT ERROR] PySATSatisfiable failed: {exc}")
         return False
@@ -95,20 +95,19 @@ def _build_one(model: FmgeneratorModel, index: int) -> FeatureModel:
     if not model.ensure_satisfiable:
         return GenerateFeatureModel(model).execute(index=index)
 
-    last_model = None
-
     for attempt in range(SATISFIABILITY_MAX_ATTEMPTS):
-        fm = GenerateFeatureModel(model).execute(index=index, attempt=attempt)
-        last_model = fm
+        fm = GenerateFeatureModel(model).execute(
+            index=index,
+            attempt=attempt
+        )
 
         if _run_flamapy_satisfiability(fm):
             return fm
 
-    if last_model is not None:
-        return last_model
-
-    raise RuntimeError(f"No se pudo generar ningún modelo para el índice {index}.")
-
+    raise RuntimeError(
+        f"No se pudo generar un modelo satisfacible "
+        f"después de {SATISFIABILITY_MAX_ATTEMPTS} intentos."
+    )
 
 def generate_models(params_json: str) -> str:
     """Generate the full batch and return every UVL as a JSON list."""

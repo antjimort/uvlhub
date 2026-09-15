@@ -138,4 +138,4 @@ app/modules/generator/tests/test_wizard_state.py::test_save_step_state_does_not_
 app/modules/generator/tests/test_wizard_state.py::test_clear_step_state_only_removes_target_step PASSED [ 99%]
 app/modules/generator/tests/test_wizard_state.py::test_step_state_is_preserved_after_returning_to_previous_step PASSED [100%]
 
-============================= 130 passed in 3.71s ==============================
+============================= 130 passed in 3.70s ==============================
