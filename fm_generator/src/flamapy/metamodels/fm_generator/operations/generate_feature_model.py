@@ -1,6 +1,7 @@
 import random
 import string
 
+from flamapy.core.operations import Operation
 from flamapy.core.models.ast import AST, ASTOperation, Node
 from flamapy.metamodels.fm_metamodel.models.feature_model import (
     Attribute,
@@ -14,7 +15,7 @@ from flamapy.metamodels.fm_metamodel.models.feature_model import (
     Relation,
 )
 
-from fm_generator.FMGenerator.models import FmgeneratorModel
+from flamapy.metamodels.fm_generator.models import FmgeneratorModel
 
 SAT_SEED_STRIDE = 100000
 RANDOM_ATTR_CONSTRAINT_PROB = 0.8
@@ -25,14 +26,22 @@ __all__ = [
 ]
 
 
-class GenerateFeatureModel:
+class GenerateFeatureModel(Operation):
     """Operation responsible for generating FeatureModel instances from FmgeneratorModel."""
 
-    def __init__(self, model: FmgeneratorModel) -> None:
-        self.model = model
+    def __init__(self) -> None:
+        self.model: FmgeneratorModel | None = None
         self.result: FeatureModel | None = None
 
-    def execute(self, index: int = 0, attempt: int = 0) -> FeatureModel:
+    def execute(
+        self,
+        model: FmgeneratorModel,
+        index: int = 0,
+        attempt: int = 0,
+    ) -> Operation:
+
+        self.model = model
+
         self.model.validate()
         self._seed_generation(index, attempt)
 
@@ -43,7 +52,7 @@ class GenerateFeatureModel:
         setattr(fm, "uvl_includes", self._build_uvl_includes())
 
         self.result = fm
-        return fm
+        return self
 
     def get_result(self) -> FeatureModel | None:
         return self.result

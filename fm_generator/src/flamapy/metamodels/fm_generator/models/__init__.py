@@ -1,4 +1,4 @@
-from fm_generator.FMGenerator.models.models import (
+from flamapy.metamodels.fm_generator.models.models import (
     AttributesConfig,
     ConstraintsConfig,
     FeaturesConfig,
