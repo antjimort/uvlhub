@@ -118,3 +118,30 @@ def get_params_json():
 def refresh_summary(step: int):
     params_dict = GeneratorWizardService.refresh_summary(step, request.form)
     return render_template("generator/_summary_partial.html", params=params_dict)
+
+
+# ─── Backend SAT generation endpoint ─────────────────────────────────────
+
+
+@generator_bp.route(
+    "/generator/random/generate-sat",
+    methods=["POST"]
+)
+def generate_sat():
+    params = request.get_json()
+    try:
+        models = GeneratorWizardService.generate_sat_models(
+            params
+        )
+        return jsonify(
+            {
+                "models": models
+            }
+        )
+
+    except Exception as exc:
+        return jsonify(
+            {
+                "error": str(exc)
+            }
+        ), 500

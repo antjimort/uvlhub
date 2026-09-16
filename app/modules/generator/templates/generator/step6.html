@@ -383,6 +383,8 @@
             paramsObj.INCLUDE_CONSTRAINT_COUNT_SUFFIX =
                 !!document.querySelector('[name="constraint_count_suffix"]')?.checked;
 
+            const useBackendSAT = paramsObj.ENSURE_SATISFIABLE === true;
+            
             console.log("DEBUG generation params suffixes:", {
                 feature: paramsObj.INCLUDE_FEATURE_COUNT_SUFFIX,
                 constraint: paramsObj.INCLUDE_CONSTRAINT_COUNT_SUFFIX,
@@ -395,25 +397,52 @@
             resetPanel(n);
 
             const t0 = performance.now();
-            for (let i = 0; i < n; i++) {
-                statusEl.textContent = `generating model ${i + 1} / ${n}…`;
-                let result;
-                try {
-                    result = await runtime.generateOne(pyodide, paramsObj, i);
-                } catch (err) {
-                    console.error(err);
-                    markError(i, n, err);
-                    return;
+        if (useBackendSAT) {
+            statusEl.textContent =
+                "Generating satisfiable models in backend…";
+
+            const response = await fetch(
+                "/generator/random/generate-sat",
+                {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body:JSON.stringify(paramsObj)
                 }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok){
+                throw new Error(data.error);
+            }
+
+            for (const result of data.models){
                 generatedFiles.push(result);
                 appendVariantRow(result);
-                counter.textContent = `${i + 1} / ${n}`;
-                bar.style.width = `${Math.round(((i + 1) / n) * 100)}%`;
-                // Yield to the browser so DOM updates paint between iterations.
-                // Every 16 models is enough for large runs without capping
-                // throughput on small ones.
-                if ((i & 15) === 15) await new Promise(r => setTimeout(r, 0));
             }
+        }
+        else {
+            for (let i = 0; i < n; i++) {
+                statusEl.textContent =
+                    `generating model ${i + 1} / ${n}…`;
+
+                const result =
+                    await runtime.generateOne(
+                        pyodide,
+                        paramsObj,
+                        i
+                    );
+
+                generatedFiles.push(result);
+                appendVariantRow(result);
+                counter.textContent =
+                    `${i+1} / ${n}`;
+                bar.style.width =
+                    `${Math.round(((i+1)/n)*100)}%`;
+            }
+        }
 
             markDone(n, (performance.now() - t0) / 1000);
         } catch (e) {

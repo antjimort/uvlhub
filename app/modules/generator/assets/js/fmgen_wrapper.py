@@ -7,14 +7,11 @@
 
 import json
 
-from flamapy.core.discover import DiscoverMetamodels
 from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 
-from fm_generator.FMGenerator.models import FmgeneratorModel
-from fm_generator.FMGenerator.operations import GenerateFeatureModel
-
-SATISFIABILITY_MAX_ATTEMPTS = 20
+from flamapy.metamodels.fm_generator.models import FmgeneratorModel
+from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
 
 
 def _prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
@@ -57,57 +54,29 @@ def _filename_for(model: FmgeneratorModel, fm: FeatureModel, index: int) -> str:
     return f"{base_name}.uvl"
 
 
-def _run_flamapy_satisfiability(fm: FeatureModel) -> bool:
-    try:
-        discover = DiscoverMetamodels()
-        sat_model = discover.use_transformation_m2m(fm, "pysat")
-        operation = discover.get_operation(sat_model, "PySATSatisfiable")
-        operation.execute(sat_model)
-        return bool(operation.get_result())
+def _generate_feature_model(
+    model: FmgeneratorModel,
+    index: int,
+    attempt: int = 0,
+) -> FeatureModel:
 
-    except ModuleNotFoundError as exc:
-        missing = getattr(exc, "name", "")
+    operation = GenerateFeatureModel()
 
-        if missing in {"pysat", "pycryptosat"}:
-            print(
-                "[SAT WARNING] PySAT backend is not available in this runtime; "
-                "SAT certification skipped."
-            )
-            return False
+    operation.execute(
+        model=model,
+        index=index,
+        attempt=attempt,
+    )
 
-        raise
-
-    except Exception as exc:
-        msg = str(exc)
-
-        if "No module named 'pysat'" in msg or "No module named pysat" in msg:
-            print(
-                "[SAT WARNING] PySAT backend is not available in this runtime; "
-                "SAT certification skipped."
-            )
-            return False
-
-        print(f"[SAT ERROR] PySATSatisfiable failed: {exc}")
-        return False
+    return operation.get_result()
 
 
 def _build_one(model: FmgeneratorModel, index: int) -> FeatureModel:
-    if not model.ensure_satisfiable:
-        return GenerateFeatureModel(model).execute(index=index)
-
-    for attempt in range(SATISFIABILITY_MAX_ATTEMPTS):
-        fm = GenerateFeatureModel(model).execute(
-            index=index,
-            attempt=attempt
-        )
-
-        if _run_flamapy_satisfiability(fm):
-            return fm
-
-    raise RuntimeError(
-        f"No se pudo generar un modelo satisfacible "
-        f"después de {SATISFIABILITY_MAX_ATTEMPTS} intentos."
+    return _generate_feature_model(
+        model,
+        index,
     )
+
 
 def generate_models(params_json: str) -> str:
     """Generate the full batch and return every UVL as a JSON list."""

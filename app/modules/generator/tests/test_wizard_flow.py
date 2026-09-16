@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from fm_generator.FMGenerator.models import FmgeneratorModel
+from flamapy.metamodels.fm_generator.models import FmgeneratorModel
 
 # Minimum valid payloads, coherent with each step's validator.
 STEP1 = {"num_models_val": "3", "seed": "42", "name_prefix": "fm"}

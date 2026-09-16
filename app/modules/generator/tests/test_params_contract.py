@@ -2,7 +2,7 @@ from dataclasses import fields
 
 import pytest
 
-from fm_generator.FMGenerator.models import ConstraintsConfig, FmgeneratorModel
+from flamapy.metamodels.fm_generator.models import ConstraintsConfig, FmgeneratorModel
 
 
 def _base_flat_params(**overrides):

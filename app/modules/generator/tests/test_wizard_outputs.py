@@ -21,8 +21,8 @@ from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 from flamapy.core.discover import DiscoverMetamodels
 from flamapy.metamodels.fm_metamodel.transformations.uvl_reader import UVLReader
 from app.modules.generator.assets.js.fmgen_wrapper import _build_one
-from fm_generator.FMGenerator.models import FmgeneratorModel
-from fm_generator.FMGenerator.operations import GenerateFeatureModel
+from flamapy.metamodels.fm_generator.models import FmgeneratorModel
+from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
 
 # ── Fixtures & helpers ───────────────────────────────────────────────────
 

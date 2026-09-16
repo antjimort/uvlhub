@@ -12,8 +12,8 @@ import re
 from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 
-from fm_generator.FMGenerator.models import FmgeneratorModel
-from fm_generator.FMGenerator.operations import GenerateFeatureModel
+from flamapy.metamodels.fm_generator.models import FmgeneratorModel
+from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
 
 
 def _base_params(**overrides) -> FmgeneratorModel:

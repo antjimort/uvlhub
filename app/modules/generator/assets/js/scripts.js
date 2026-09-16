@@ -13,10 +13,10 @@ const WHEELS = [
     "astutils-0.0.6-py3-none-any.whl",
     "blinker-1.9.0-py3-none-any.whl",
     "dd-0.5.7-py3-none-any.whl",
-    "flamapy_bdd-2.5.0-py3-none-any.whl",
+    // "flamapy_bdd-2.5.0-py3-none-any.whl",
     "flamapy_fm-2.5.0-py3-none-any.whl",
     "flamapy_fw-2.5.0-py3-none-any.whl",
-    "flamapy_sat-2.5.0-py3-none-any.whl",
+    // "flamapy_sat-2.5.0-py3-none-any.whl",
     "flamapy-2.5.0-py3-none-any.whl",
     "flask-3.1.0-py3-none-any.whl",
     "fm_generator-0.0.1-py3-none-any.whl",
@@ -294,6 +294,8 @@ export async function generateOne(pyodide, paramsObj, index) {
     // Each call re-sets params_json because paramsObj may have changed
     // between invocations (the user flipping checkboxes on step 6 before
     // clicking Generate). Kept cheap — Python parses it lazily.
+
+    
     pyodide.globals.set("params_json", JSON.stringify(paramsObj));
     pyodide.globals.set("model_index", index);
     const resultJson = await pyodide.runPythonAsync(
