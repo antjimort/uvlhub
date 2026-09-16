@@ -100,21 +100,36 @@ def _run(model: FmgeneratorModel, n: int = 5) -> str:
     """Generate `n` models and return their concatenated UVL text."""
     model.num_models = n
 
+    generator = GenerateFeatureModel()
+
     return "\n".join(
-        _serialize_uvl(GenerateFeatureModel(model).execute(index=index))
+        _serialize_uvl(
+            generator.execute(model, index=index).get_result()
+        )
         for index in range(n)
     )
 
+
+def _generate_feature_model(model: FmgeneratorModel, index: int = 0):
+    operation = GenerateFeatureModel().execute(
+        model,
+        index=index,
+    )
+    return operation.get_result()
 
 # ── NUM_MODELS + filename suffixes ───────────────────────────────────────
 
 
 def test_num_models_respected():
     p = _base_params(NUM_MODELS=7)
+
+    generator = GenerateFeatureModel()
+
     fms = [
-        GenerateFeatureModel(p).execute(index=index)
+        generator.execute(p, index=index).get_result()
         for index in range(p.num_models)
     ]
+
     assert len(fms) == 7
 
 
@@ -538,10 +553,13 @@ def test_min_max_constraints_respected():
 def test_ensure_satisfiable_runs_without_crashing():
     """Smoke test: satisfiable generation inputs must not raise."""
     p = _base_params(ENSURE_SATISFIABLE=True, NUM_MODELS=2)
+    generator = GenerateFeatureModel()
+
     fms = [
-        GenerateFeatureModel(p).execute(index=index)
+        generator.execute(p, index=index).get_result()
         for index in range(p.num_models)
     ]
+
     assert len(fms) == 2
 
 
@@ -576,8 +594,19 @@ def test_manual_mode_uses_attribute_in_constraints_flag():
 def test_constant_seed_and_index_determinism():
     """GenerateFeatureModel.execute must be deterministic on (seed, index)."""
     p = _base_params(SEED=42)
-    a = GenerateFeatureModel(p).execute(index=0)
-    b = GenerateFeatureModel(p).execute(index=0)
 
-    assert [f.name for f in a.get_features()] == [f.name for f in b.get_features()]
+    a = GenerateFeatureModel().execute(
+        p,
+        index=0,
+    ).get_result()
+
+    b = GenerateFeatureModel().execute(
+        p,
+        index=0,
+    ).get_result()
+
+    assert [f.name for f in a.get_features()] == [
+        f.name for f in b.get_features()
+    ]
+
     assert len(a.ctcs) == len(b.ctcs)
