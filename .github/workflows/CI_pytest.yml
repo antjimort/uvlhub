@@ -20,9 +20,6 @@ jobs:
       MARIADB_PORT: 3306
       FLASK_ENV: testing
 
-      # Critical: make constraints apply to build isolation envs too
-      PIP_CONSTRAINT: constraints.txt
-
     services:
       mariadb:
         image: mariadb:12.0.2
@@ -54,8 +51,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # constraints.txt must contain: setuptools<82
-          pip install -r requirements.txt -c constraints.txt
 
       - name: Install fm_generator package
         # The generator is developed as a local package and imported by

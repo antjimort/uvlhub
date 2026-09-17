@@ -1157,67 +1157,6 @@ class WizardRouteResult:
     redirect_endpoint: str | None = None
 
 
-class GeneratorService:
-    def zip_generated_models(self, output_dir, zip_path):
-        with ZipFile(zip_path, "w") as zipf:
-            for root, dirs, files in os.walk(output_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, output_dir)
-                    zipf.write(file_path, arcname=arcname)
-
-def serialize_generated_model(
-    fm: FeatureModel,
-    model: FmgeneratorModel,
-    index: int,
-):
-    content = UVLWriter(None, fm).transform()
-
-    feature_count = len(list(fm.get_features()))
-    constraint_count = len(getattr(fm, "ctcs", []))
-
-    base_name = (
-        model.naming.name_prefix.strip()
-        if model.naming.name_prefix
-        else "fm"
-    )
-
-    if model.naming.include_feature_count_suffix and \
-       model.naming.include_constraint_count_suffix:
-
-        filename = (
-            f"{base_name}_{feature_count}f_{constraint_count}c.uvl"
-        )
-
-    elif model.naming.include_feature_count_suffix:
-
-        filename = (
-            f"{base_name}_{feature_count}f.uvl"
-        )
-
-    elif model.naming.include_constraint_count_suffix:
-
-        filename = (
-            f"{base_name}_{constraint_count}c.uvl"
-        )
-
-    elif model.num_models > 1:
-
-        filename = f"{base_name}_{index}.uvl"
-
-    else:
-
-        filename = f"{base_name}.uvl"
-
-
-    return {
-        "filename": filename,
-        "content": content,
-        "features": feature_count,
-        "constraints": constraint_count,
-    }
-
-
 class GeneratorWizardService:
     @staticmethod
     def reset_wizard_state() -> None:
@@ -1462,52 +1401,86 @@ class GeneratorWizardService:
         return update_summary_draft(step, form)
 
 
+    def serialize_generated_model(
+        fm: FeatureModel,
+        model: FmgeneratorModel,
+        index: int,
+    ):
+        content = UVLWriter(None, fm).transform()
+
+        feature_count = len(list(fm.get_features()))
+        constraint_count = len(getattr(fm, "ctcs", []))
+
+        base_name = (
+            model.naming.name_prefix.strip()
+            if model.naming.name_prefix
+            else "fm"
+        )
+
+        if model.naming.include_feature_count_suffix and \
+        model.naming.include_constraint_count_suffix:
+            filename = (
+                f"{base_name}_{feature_count}f_{constraint_count}c.uvl"
+            )
+
+        elif model.naming.include_feature_count_suffix:
+            filename = (
+                f"{base_name}_{feature_count}f.uvl"
+            )
+
+        elif model.naming.include_constraint_count_suffix:
+            filename = (
+                f"{base_name}_{constraint_count}c.uvl"
+            )
+
+        elif model.num_models > 1:
+            filename = f"{base_name}_{index}.uvl"
+
+        else:
+            filename = f"{base_name}.uvl"
+
+        return {
+            "filename": filename,
+            "content": content,
+            "features": feature_count,
+            "constraints": constraint_count,
+        }
+
+
     @staticmethod
     def generate_sat_models(params_dict):
         logger.warning("🔥 BACKEND SAT GENERATION ACTIVATED")
-
         model = FmgeneratorModel.from_flat_dict(
             params_dict
         )
-
         results = []
 
-
         for index in range(model.num_models):
-
             fm = None
             attempt = 0
-
 
             while attempt < 20:
                 logger.warning(
                     f"Model {index}, attempt {attempt}"
                 )
                 operation = GenerateFeatureModel()
-
                 operation.execute(
                     model=model,
                     index=index,
                     attempt=attempt,
                 )
-
                 candidate = operation.get_result()
 
-
                 if GeneratorWizardService.is_satisfiable(candidate):
-
                     fm = candidate
                     break
 
-
                 attempt += 1
-
 
             if fm is None:
                 raise RuntimeError(
                     f"Could not generate satisfiable model {index}"
                 )
-
 
             results.append(
                 serialize_generated_model(
