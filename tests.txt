@@ -1,142 +1,36 @@
-Running tests for the 'generator' module...
+Running unit or repository or service or integration tests against /workspace/app/features/generator...
 ============================= test session starts ==============================
 platform linux -- Python 3.13.15, pytest-9.0.3, pluggy-1.6.0 -- /usr/local/bin/python3.13
 cachedir: .pytest_cache
-rootdir: /app/app/modules
-configfile: pytest.ini
-plugins: cov-7.0.0, locust-2.43.4.dev13, Faker-40.5.1
-collecting ... collected 131 items
+rootdir: /workspace
+configfile: pyproject.toml
+plugins: mock-3.15.1, cov-7.0.0, locust-2.43.4.dev13, Faker-40.5.1
+collecting ... collected 36 items / 2 errors / 27 deselected / 9 selected
 
-app/modules/generator/tests/test_engine.py::test_num_models_respected PASSED [  0%]
-app/modules/generator/tests/test_engine.py::test_determinism_same_seed_same_output PASSED [  1%]
-app/modules/generator/tests/test_engine.py::test_different_seed_different_output PASSED [  2%]
-app/modules/generator/tests/test_engine.py::test_feature_count_in_range PASSED [  3%]
-app/modules/generator/tests/test_engine.py::test_max_tree_depth_respected PASSED [  3%]
-app/modules/generator/tests/test_engine.py::test_group_cardinality_off_produces_no_group_relations PASSED [  4%]
-app/modules/generator/tests/test_engine.py::test_group_cardinality_on_with_weight_produces_group_groups PASSED [  5%]
-app/modules/generator/tests/test_engine.py::test_feature_cardinality_off_produces_none PASSED [  6%]
-app/modules/generator/tests/test_engine.py::test_feature_cardinality_on_produces_some PASSED [  6%]
-app/modules/generator/tests/test_engine.py::test_random_attributes_respects_count_range PASSED [  7%]
-app/modules/generator/tests/test_engine.py::test_dist_boolean_only_produces_only_boolean_attrs PASSED [  8%]
-app/modules/generator/tests/test_engine.py::test_dist_integer_only_produces_integer_attrs PASSED [  9%]
-app/modules/generator/tests/test_engine.py::test_dist_string_only_respects_type_level PASSED [  9%]
-app/modules/generator/tests/test_engine.py::test_numeric_attrs_do_not_appear_in_constraints_when_arithmetic_off PASSED [ 10%]
-app/modules/generator/tests/test_engine.py::test_boolean_only_level_has_no_arith_no_strings PASSED [ 11%]
-app/modules/generator/tests/test_engine.py::test_arithmetic_level_produces_arith_constraints PASSED [ 12%]
-app/modules/generator/tests/test_engine.py::test_aggregate_functions_produce_sum_avg PASSED [ 12%]
-app/modules/generator/tests/test_engine.py::test_string_level_produces_len_constraints PASSED [ 13%]
-app/modules/generator/tests/test_engine.py::test_len_constraints_mix_with_arithmetic_but_not_with_aggregates PASSED [ 14%]
-app/modules/generator/tests/test_engine.py::test_min_vars_per_constraint_respected PASSED [ 15%]
-app/modules/generator/tests/test_engine.py::test_prob_not_zero_produces_no_negations PASSED [ 16%]
-app/modules/generator/tests/test_engine.py::test_min_max_constraints_respected PASSED [ 16%]
-app/modules/generator/tests/test_engine.py::test_ensure_satisfiable_runs_without_crashing PASSED [ 17%]
-app/modules/generator/tests/test_engine.py::test_manual_mode_uses_attribute_in_constraints_flag PASSED [ 18%]
-app/modules/generator/tests/test_engine.py::test_constant_seed_and_index_determinism PASSED [ 19%]
-app/modules/generator/tests/test_params_contract.py::test_wizard_referenced_params_keys_are_mapped_to_generator_model PASSED [ 19%]
-app/modules/generator/tests/test_params_contract.py::test_extra_constraint_representativeness_matches_integer_form_contract PASSED [ 20%]
-app/modules/generator/tests/test_params_contract.py::test_generator_model_defaults_are_valid_for_generation_contract PASSED [ 21%]
-app/modules/generator/tests/test_params_contract.py::test_generator_model_rejects_relation_distribution_that_does_not_sum_to_one PASSED [ 22%]
-app/modules/generator/tests/test_params_contract.py::test_generator_model_rejects_boolean_operator_distribution_that_does_not_sum_to_one PASSED [ 22%]
-app/modules/generator/tests/test_validators.py::test_step1_rejects_batch_size_that_could_break_generation PASSED [ 23%]
-app/modules/generator/tests/test_validators.py::test_step2_rejects_minor_levels_without_required_major_levels PASSED [ 24%]
-app/modules/generator/tests/test_validators.py::test_step3_rejects_feature_bounds_that_make_tree_generation_impossible PASSED [ 25%]
-app/modules/generator/tests/test_validators.py::test_step3_rejects_tree_depth_greater_than_available_features PASSED [ 25%]
-app/modules/generator/tests/test_validators.py::test_step3_rejects_invalid_relation_distribution PASSED [ 26%]
-app/modules/generator/tests/test_validators.py::test_step3_rejects_group_cardinality_distribution_without_group_weight PASSED [ 27%]
-app/modules/generator/tests/test_validators.py::test_step3_rejects_invalid_feature_cardinality_probability PASSED [ 28%]
-app/modules/generator/tests/test_validators.py::test_step4_rejects_constraint_bounds_that_cannot_be_generated PASSED [ 29%]
-app/modules/generator/tests/test_validators.py::test_step4_rejects_extra_constraint_representation_greater_than_ctc_size PASSED [ 29%]
-app/modules/generator/tests/test_validators.py::test_step4_rejects_invalid_boolean_operator_distribution PASSED [ 30%]
-app/modules/generator/tests/test_validators.py::test_step4_rejects_invalid_arithmetic_and_constraint_type_distributions PASSED [ 31%]
-app/modules/generator/tests/test_validators.py::test_step5_rejects_random_attribute_bounds_that_cannot_be_generated PASSED [ 32%]
-app/modules/generator/tests/test_validators.py::test_step5_rejects_invalid_random_attribute_distribution PASSED [ 32%]
-app/modules/generator/tests/test_validators.py::test_step5_rejects_manual_integer_attribute_with_invalid_range PASSED [ 33%]
-app/modules/generator/tests/test_validators.py::test_step5_rejects_using_numeric_attribute_in_constraints_without_arithmetic PASSED [ 34%]
-app/modules/generator/tests/test_wizard_builders.py::test_build_step3_normalises_feature_cardinality_values[3-7-3-7] PASSED [ 35%]
-app/modules/generator/tests/test_wizard_builders.py::test_build_step3_normalises_feature_cardinality_values[min_cardinality1-max_cardinality1-2-5] PASSED [ 35%]
-app/modules/generator/tests/test_wizard_builders.py::test_build_step3_normalises_feature_cardinality_values[min_cardinality2-max_cardinality2-2-5] PASSED [ 36%]
-app/modules/generator/tests/test_wizard_builders.py::test_build_step3_preserves_group_cardinality_distribution_when_enabled PASSED [ 37%]
-app/modules/generator/tests/test_wizard_flow.py::test_advancing_with_no_session_redirects_to_landing PASSED [ 38%]
-app/modules/generator/tests/test_wizard_flow.py::test_full_happy_path_produces_valid_params PASSED [ 38%]
-app/modules/generator/tests/test_wizard_flow.py::test_parent_child_slider_sum_1p0007_renormalises PASSED [ 39%]
-app/modules/generator/tests/test_wizard_flow.py::test_boolean_ops_residue_renormalises PASSED [ 40%]
-app/modules/generator/tests/test_wizard_flow.py::test_extra_constraint_representativeness_is_int_in_session PASSED [ 41%]
-app/modules/generator/tests/test_wizard_flow.py::test_back_nav_from_step2_preserves_level_flags PASSED [ 41%]
-app/modules/generator/tests/test_wizard_flow.py::test_back_nav_from_step4_preserves_tree_shape PASSED [ 42%]
-app/modules/generator/tests/test_wizard_flow.py::test_step4_configuration_survives_forward_and_back_navigation PASSED [ 43%]
-app/modules/generator/tests/test_wizard_flow.py::test_back_nav_from_step6_preserves_output_options PASSED [ 44%]
-app/modules/generator/tests/test_wizard_outputs.py::test_boolean_only_wizard_produces_only_boolean PASSED [ 45%]
-app/modules/generator/tests/test_wizard_outputs.py::test_arithmetic_level_wizard_produces_arithmetic_constraints PASSED [ 45%]
-app/modules/generator/tests/test_wizard_outputs.py::test_arithmetic_constraints_do_not_compare_same_expression PASSED [ 46%]
-app/modules/generator/tests/test_wizard_outputs.py::test_aggregate_functions_wizard_produces_sum_or_avg PASSED [ 47%]
-app/modules/generator/tests/test_wizard_outputs.py::test_aggregate_functions_never_generate_more_than_two_arguments PASSED [ 48%]
-app/modules/generator/tests/test_wizard_outputs.py::test_string_level_wizard_produces_string_constraints PASSED [ 48%]
-app/modules/generator/tests/test_wizard_outputs.py::test_arithmetic_off_means_no_arithmetic_in_output PASSED [ 49%]
-app/modules/generator/tests/test_wizard_outputs.py::test_type_off_means_no_string_ctc PASSED [ 50%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_off_means_no_cardinality_in_uvl PASSED [ 51%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_on_produces_cardinality PASSED [ 51%]
-app/modules/generator/tests/test_wizard_outputs.py::test_group_cardinality_off_keeps_only_standard_relations PASSED [ 52%]
-app/modules/generator/tests/test_wizard_outputs.py::test_group_cardinality_on_produces_groups PASSED [ 53%]
-app/modules/generator/tests/test_wizard_outputs.py::test_filename_suffixes_applied_to_generated_files PASSED [ 54%]
-app/modules/generator/tests/test_wizard_outputs.py::test_vars_per_constraint_fixed_observed_in_output PASSED [ 54%]
-app/modules/generator/tests/test_wizard_outputs.py::test_ctc_dist_weights_force_string PASSED [ 55%]
-app/modules/generator/tests/test_wizard_outputs.py::test_deeper_tree_yields_more_indent[1] PASSED [ 56%]
-app/modules/generator/tests/test_wizard_outputs.py::test_deeper_tree_yields_more_indent[2] PASSED [ 57%]
-app/modules/generator/tests/test_wizard_outputs.py::test_deeper_tree_yields_more_indent[3] PASSED [ 58%]
-app/modules/generator/tests/test_wizard_outputs.py::test_deeper_tree_yields_more_indent[4] PASSED [ 58%]
-app/modules/generator/tests/test_wizard_outputs.py::test_deeper_tree_yields_more_indent[5] PASSED [ 59%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[2-2] PASSED [ 60%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[2-5] PASSED [ 61%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[3-7] PASSED [ 61%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[1-3] PASSED [ 62%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[5-10] PASSED [ 63%]
-app/modules/generator/tests/test_wizard_outputs.py::test_feature_cardinality_bounds_observed[2-20] PASSED [ 64%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_constraint_count_observed[1] PASSED [ 64%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_constraint_count_observed[3] PASSED [ 65%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_constraint_count_observed[5] PASSED [ 66%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_constraint_count_observed[7] PASSED [ 67%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_constraint_count_observed[10] PASSED [ 67%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_vars_per_ctc_observed[2] PASSED [ 68%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_vars_per_ctc_observed[3] PASSED [ 69%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_vars_per_ctc_observed[4] PASSED [ 70%]
-app/modules/generator/tests/test_wizard_outputs.py::test_fixed_vars_per_ctc_observed[5] PASSED [ 70%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_fixed_count_observed[1] PASSED [ 71%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_fixed_count_observed[2] PASSED [ 72%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_fixed_count_observed[3] PASSED [ 73%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_fixed_count_observed[5] PASSED [ 74%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_fixed_count_observed[7] PASSED [ 74%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_type_dominance[dist0-boolean] PASSED [ 75%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_type_dominance[dist1-integer] PASSED [ 76%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_type_dominance[dist2-real] PASSED [ 77%]
-app/modules/generator/tests/test_wizard_outputs.py::test_attribute_type_dominance[dist3-string] PASSED [ 77%]
-app/modules/generator/tests/test_wizard_outputs.py::test_filename_suffix_combinations[flags0-^fm_\\d+\\.uvl$] PASSED [ 78%]
-app/modules/generator/tests/test_wizard_outputs.py::test_filename_suffix_combinations[flags1-^fm_\\d+f\\.uvl$] PASSED [ 79%]
-app/modules/generator/tests/test_wizard_outputs.py::test_filename_suffix_combinations[flags2-^fm_\\d+c\\.uvl$] PASSED [ 80%]
-app/modules/generator/tests/test_wizard_outputs.py::test_filename_suffix_combinations[flags3-^fm_\\d+f_\\d+c\\.uvl$] PASSED [ 80%]
-app/modules/generator/tests/test_wizard_outputs.py::test_same_seed_gives_same_models[1] PASSED [ 81%]
-app/modules/generator/tests/test_wizard_outputs.py::test_same_seed_gives_same_models[7] PASSED [ 82%]
-app/modules/generator/tests/test_wizard_outputs.py::test_same_seed_gives_same_models[42] PASSED [ 83%]
-app/modules/generator/tests/test_wizard_outputs.py::test_same_seed_gives_same_models[1234] PASSED [ 83%]
-app/modules/generator/tests/test_wizard_outputs.py::test_same_seed_gives_same_models[99999] PASSED [ 84%]
-app/modules/generator/tests/test_wizard_outputs.py::test_prev_nav_goes_to_previous_step[2-/step1] PASSED [ 85%]
-app/modules/generator/tests/test_wizard_outputs.py::test_prev_nav_goes_to_previous_step[3-/step2] PASSED [ 86%]
-app/modules/generator/tests/test_wizard_outputs.py::test_prev_nav_goes_to_previous_step[4-/step3] PASSED [ 87%]
-app/modules/generator/tests/test_wizard_outputs.py::test_prev_nav_goes_to_previous_step[5-/step4] PASSED [ 87%]
-app/modules/generator/tests/test_wizard_outputs.py::test_prev_nav_goes_to_previous_step[6-/step5] PASSED [ 88%]
-app/modules/generator/tests/test_wizard_outputs.py::test_back_navigation_preserves_all_choices PASSED [ 89%]
-app/modules/generator/tests/test_wizard_outputs.py::test_everything_on_every_family_represented PASSED [ 90%]
-app/modules/generator/tests/test_wizard_outputs.py::test_generated_uvl_can_be_parsed PASSED [ 90%]
-app/modules/generator/tests/test_wizard_outputs.py::test_ensure_satisfiable_retries_until_sat PASSED [ 91%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step2_type_enables_arithmetic PASSED [ 92%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step3_normalizes_relation_distribution PASSED [ 93%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step4_disables_arithmetic_probs_when_arithmetic_off PASSED [ 93%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step5_random_attrs_normalizes_distribution PASSED [ 94%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step3_normalizes_relation_distribution_with_group_cardinality PASSED [ 95%]
-app/modules/generator/tests/test_wizard_persisters.py::test_apply_step5_masks_unavailable_attribute_types_when_levels_are_off PASSED [ 96%]
-app/modules/generator/tests/test_wizard_state.py::test_save_step_state_preserves_checkbox_false_values PASSED [ 96%]
-app/modules/generator/tests/test_wizard_state.py::test_load_step_state_merges_saved_values_over_defaults PASSED [ 97%]
-app/modules/generator/tests/test_wizard_state.py::test_save_step_state_does_not_overwrite_other_steps PASSED [ 98%]
-app/modules/generator/tests/test_wizard_state.py::test_clear_step_state_only_removes_target_step PASSED [ 99%]
-app/modules/generator/tests/test_wizard_state.py::test_step_state_is_preserved_after_returning_to_previous_step PASSED [100%]
-
-============================= 131 passed in 2.48s ==============================
+==================================== ERRORS ====================================
+_______ ERROR collecting app/features/generator/tests/test_validators.py _______
+ImportError while importing test module '/workspace/app/features/generator/tests/test_validators.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/features/generator/tests/test_validators.py:11: in <module>
+    from flamapy.metamodels.fm_generator.wizard import (
+E   ModuleNotFoundError: No module named 'flamapy.metamodels.fm_generator.wizard'
+_____ ERROR collecting app/features/generator/tests/test_wizard_outputs.py _____
+ImportError while importing test module '/workspace/app/features/generator/tests/test_wizard_outputs.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/features/generator/tests/test_wizard_outputs.py:22: in <module>
+    from app.modules.generator.assets.js.fmgen_wrapper import _build_one
+E   ModuleNotFoundError: No module named 'app.modules.generator.assets.js.fmgen_wrapper'
+=========================== short test summary info ============================
+ERROR app/features/generator/tests/test_validators.py
+ERROR app/features/generator/tests/test_wizard_outputs.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================= 27 deselected, 2 errors in 0.33s =======================
+pytest failed: Command '['pytest', '-v', '/workspace/app/features/generator', '-m', 'unit or repository or service or integration']' returned non-zero exit status 2.

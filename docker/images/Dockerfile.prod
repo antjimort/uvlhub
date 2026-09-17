@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.13
 
 # -------------------------
@@ -5,9 +6,10 @@ FROM python:3.13
 # -------------------------
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_ROOT_USER_ACTION=ignore \
-    PYTHONPATH=/app
+    PYTHONPATH=/workspace
+    
 
-WORKDIR /app
+WORKDIR /workspace
 
 # --------------------------------------------
 # System deps + Node.js (LTS) + Docker CLI
@@ -32,44 +34,41 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Security settings in Git
-RUN git config --global --add safe.directory /app
+RUN git config --global --add safe.directory /workspace
 
 # -------------------------
 # Dependency manifests first
 # -------------------------
-COPY requirements.txt .
-COPY package.json .
+COPY package.json package-lock.json ./
 COPY pyproject.toml ./
 
-# Python deps (constraints applied via PIP_CONSTRAINT env)
-RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir --pre -r requirements.txt
+# Python deps (pinned in pyproject [project.dependencies])
+RUN --mount=type=cache,target=/root/.cache/pip pip install --upgrade pip \
+ && pip install --pre .
 
 # Node deps
-RUN npm install
+RUN npm ci
 
 # -------------------------
 # Project files
 # -------------------------
 COPY app/ ./app
-COPY core/ ./core
 COPY rosemary/ ./rosemary
 COPY fm_generator/ ./fm_generator
 COPY migrations/ ./migrations
 COPY docker/ ./docker
 COPY --chmod=0755 scripts/ ./scripts/
 
-# Install Rosemary as editable
-RUN pip install -e ./
+# Install Rosemary (lives in ./rosemary with its own pyproject)
+RUN pip install -e ./rosemary
 
-# Install vendored fm_generator (server-side use in app/modules/generator/routes.py)
+# Install fm_generator plugin
 RUN pip install --no-cache-dir build
 RUN pip install --no-cache-dir -e ./fm_generator
 RUN python -m build --wheel ./fm_generator \
- && cp fm_generator/dist/fm_generator-*.whl app/modules/generator/assets/js/
+ && cp fm_generator/dist/fm_generator-*.whl app/features/generator/assets/js/
 
-# Create the .moduleignore file with the module 'webhook' inside
-RUN echo "webhook" > /app/.moduleignore
+RUN echo "webhook" > /workspace/.moduleignore
 
 # Remove Python cache
 RUN find . -type d -name "__pycache__" -exec rm -r {} + \
@@ -83,7 +82,7 @@ RUN rosemary webpack:compile
 ENV NODE_ENV=production
 
 ARG VERSION_TAG
-RUN echo "$VERSION_TAG" > /app/.version
+RUN echo "$VERSION_TAG" > /workspace/.version
 
 ENV PORT=10000
 

@@ -9,9 +9,12 @@ feeds the engine correctly.
 
 import re
 
-from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
-from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
+import pytest
 
+from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
+from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import (
+    UVLWriter
+)
 from flamapy.metamodels.fm_generator.models import FmgeneratorModel
 from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
 
@@ -87,13 +90,15 @@ def _prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
     if not includes:
         return serialized_model
 
-    include_block = "include\n" + "\n".join(f"\t{inc}" for inc in includes) + "\n"
+    include_block = "include\n" + \
+        "\n".join(f"\t{inc}" for inc in includes) + "\n"
     return include_block + serialized_model
 
 
 def _serialize_uvl(fm: FeatureModel) -> str:
     serialized_model = UVLWriter(None, fm).transform()
-    return _prepend_uvl_includes(serialized_model, getattr(fm, "uvl_includes", []))
+    return _prepend_uvl_includes(serialized_model, getattr(fm, "uvl_includes",
+                                                           []))
 
 
 def _run(model: FmgeneratorModel, n: int = 5) -> str:
@@ -102,12 +107,9 @@ def _run(model: FmgeneratorModel, n: int = 5) -> str:
 
     generator = GenerateFeatureModel()
 
-    return "\n".join(
-        _serialize_uvl(
-            generator.execute(model, index=index).get_result()
-        )
-        for index in range(n)
-    )
+    return "\n".join(_serialize_uvl(generator.execute(model, index=index)
+                                    .get_result())
+                     for index in range(n))
 
 
 def _generate_feature_model(model: FmgeneratorModel, index: int = 0):
@@ -117,6 +119,7 @@ def _generate_feature_model(model: FmgeneratorModel, index: int = 0):
     )
     return operation.get_result()
 
+
 # ── NUM_MODELS + filename suffixes ───────────────────────────────────────
 
 
@@ -125,10 +128,8 @@ def test_num_models_respected():
 
     generator = GenerateFeatureModel()
 
-    fms = [
-        generator.execute(p, index=index).get_result()
-        for index in range(p.num_models)
-    ]
+    fms = [generator.execute(p, index=index).get_result()
+           for index in range(p.num_models)]
 
     assert len(fms) == 7
 
@@ -157,7 +158,8 @@ def test_feature_count_in_range():
     models = [m for m in text.split("features\n") if m.strip()]
     for m in models:
         feats = set(re.findall(r"F\d+\b", m))
-        assert 5 <= len(feats) <= 9, f"feature count out of range: {len(feats)}"
+        assert 5 <= len(
+            feats) <= 9, f"feature count out of range: {len(feats)}"
 
 
 def test_max_tree_depth_respected():
@@ -169,7 +171,8 @@ def test_max_tree_depth_respected():
     text = _run(p, n=3)
     feat_lines = [ln for ln in text.splitlines() if re.match(r"\t+F\d+\b", ln)]
     max_indent = max(len(ln) - len(ln.lstrip("\t")) for ln in feat_lines)
-    assert max_indent <= 1 + 2 * 3, f"deepest feature at {max_indent} tabs exceeds cap"
+    assert max_indent <= 1 + 2 * \
+        3, f"deepest feature at {max_indent} tabs exceeds cap"
 
 
 def test_group_cardinality_off_produces_no_group_relations():
@@ -183,7 +186,8 @@ def test_group_cardinality_off_produces_no_group_relations():
     )
     text = _run(p, n=5)
     # Group-cardinality relations serialise as "[n]" or "[n..m]" markers as
-    # standalone relation indicator (not cardinality [n..m] which attaches to a feature).
+    # standalone relation indicator (not cardinality [n..m] which attaches to
+    # a feature).
     assert "group_cardinality" not in text.lower()
 
 
@@ -203,7 +207,8 @@ def test_group_cardinality_on_with_weight_produces_group_groups():
     # Feature cardinality is "cardinality [n..m]" with the keyword, so we
     # search for the bare form.
     lines = text.splitlines()
-    bare_card = [ln for ln in lines if re.match(r"^\s*\[\d+(\.\.\d+)?\]\s*$", ln)]
+    bare_card = [ln for ln in lines if re.match(
+        r"^\s*\[\d+(\.\.\d+)?\]\s*$", ln)]
     assert len(bare_card) > 0, "no group-cardinality relations emitted"
 
 
@@ -264,7 +269,8 @@ def test_dist_boolean_only_produces_only_boolean_attrs():
     # Boolean attrs serialise as "{Name true}" or "{Name false}".
     attrs = re.findall(r"\{Attr\d+\s+(\S+?)(?:,|\})", text)
     assert attrs, "no attributes found"
-    assert all(a in ("true", "false") for a in attrs), f"non-boolean attrs: {attrs}"
+    assert all(a in ("true", "false")
+               for a in attrs), f"non-boolean attrs: {attrs}"
 
 
 def test_dist_integer_only_produces_integer_attrs():
@@ -326,7 +332,9 @@ def test_numeric_attrs_do_not_appear_in_constraints_when_arithmetic_off():
     assert attrs, "expected numeric attributes to be generated"
 
     for line in _iter_constraint_lines(text):
-        assert ".Attr" not in line, f"attribute leaked into boolean-only constraint: {line}"
+        assert ".Attr" not in line, (
+            f"attribute leaked into boolean-only constraint: {line}"
+        )
 
 
 # ── Constraints / levels ─────────────────────────────────────────────────
@@ -351,7 +359,10 @@ def test_boolean_only_level_has_no_arith_no_strings():
     arith_in_ctc = re.search(r"[+\-*/]", body)
     # Actually Boolean constraints don't contain + - * /; negation is "!" and
     # implies is "=>".
-    assert arith_in_ctc is None or "!=" in body, "unexpected arithmetic in boolean-only constraints"
+    assert arith_in_ctc is None or "!=" in body, (
+        "unexpected arithmetic in boolean-only constraints"
+    )
+    "boolean-only constraints"
 
 
 def test_arithmetic_level_produces_arith_constraints():
@@ -374,7 +385,8 @@ def test_arithmetic_level_produces_arith_constraints():
     text = _run(p, n=5)
     body = "\n".join(_iter_constraint_lines(text))
     # Expect at least one arithmetic operator in a constraint.
-    assert re.search(r"\s[+\-*/]\s", body), f"no arithmetic constraints emitted:\n{body}"
+    assert re.search(
+        r"\s[+\-*/]\s", body), f"no arithmetic constraints emitted:\n{body}"
 
 
 def test_aggregate_functions_produce_sum_avg():
@@ -402,7 +414,10 @@ def test_aggregate_functions_produce_sum_avg():
     )
     text = _run(p, n=5)
     body = "\n".join(_iter_constraint_lines(text))
-    assert "sum(" in body or "avg(" in body, f"no aggregate constraints emitted:\n{body}"
+    assert "sum(" in body or "avg(" in body, (
+        f"no aggregate constraints emitted:\n{body}"
+    )
+    "emitted:\n{body}"
 
 
 def test_string_level_produces_len_constraints():
@@ -438,29 +453,23 @@ def test_len_constraints_mix_with_arithmetic_but_not_with_aggregates():
         STRING_CONSTRAINTS=True,
         ARITHMETIC_LEVEL=True,
         AGGREGATE_FUNCTIONS=True,
-
         ATTR_DIST_BOOLEAN=0.0,
         ATTR_DIST_INTEGER=0.5,
         ATTR_DIST_REAL=0.0,
         ATTR_DIST_STRING=0.5,
-
         CTC_DIST_BOOLEAN=0.0,
         CTC_DIST_INTEGER=1.0,
         CTC_DIST_REAL=0.0,
         CTC_DIST_STRING=0.0,
-
         PROB_LEN_FUNCTION=1.0,
-
         # Force arithmetic generation
         PROB_SUM=0.5,
         PROB_SUBSTRACT=0.0,
         PROB_MULTIPLY=0.0,
         PROB_DIVIDE=0.0,
-
         # Enable aggregates but they must not consume len()
         PROB_SUM_FUNCTION=0.25,
         PROB_AVG_FUNCTION=0.25,
-
         MIN_CONSTRAINTS=20,
         MAX_CONSTRAINTS=20,
         MIN_ATTRIBUTES=4,
@@ -474,8 +483,7 @@ def test_len_constraints_mix_with_arithmetic_but_not_with_aggregates():
 
     # len() must appear inside arithmetic expressions
     arithmetic_len = re.search(
-        r"(len\([^)]+\)\s*[+\-*/]\s*\w+)"
-        r"|(\w+\s*[+\-*/]\s*len\([^)]+\))",
+        r"(len\([^)]+\)\s*[+\-*/]\s*\w+)" r"|(\w+\s*[+\-*/]\s*len\([^)]+\))",
         body,
     )
 
@@ -523,7 +531,9 @@ def test_min_vars_per_constraint_respected():
     text = _run(p, n=3)
     for line in _iter_constraint_lines(text):
         refs = re.findall(r"\bF\d+\b", line)
-        assert len(refs) == 4, f"expected 4 vars in constraint, got {len(refs)}: {line}"
+        assert len(refs) == 4, (
+            f"expected 4 vars in constraint, got {len(refs)}: {line}"
+        )
 
 
 def test_prob_not_zero_produces_no_negations():
@@ -533,7 +543,8 @@ def test_prob_not_zero_produces_no_negations():
         MAX_CONSTRAINTS=8,
     )
     text = _run(p, n=5)
-    ctc_body = text.split("constraints\n", 1)[1] if "constraints\n" in text else ""
+    ctc_body = text.split("constraints\n", 1)[
+        1] if "constraints\n" in text else ""
     # '!' only appears in negation in UVL syntax. The writer uses "! ".
     assert "! " not in ctc_body, "unexpected NOT in constraints"
 
@@ -542,7 +553,8 @@ def test_min_max_constraints_respected():
     p = _base_params(MIN_CONSTRAINTS=3, MAX_CONSTRAINTS=3)
     for _ in range(5):
         text = _run(p, n=1)
-        ctc_body = text.split("constraints\n", 1)[1] if "constraints\n" in text else ""
+        ctc_body = text.split("constraints\n", 1)[
+            1] if "constraints\n" in text else ""
         lines = [ln for ln in ctc_body.splitlines() if ln.strip()]
         assert len(lines) == 3
 
@@ -555,10 +567,8 @@ def test_ensure_satisfiable_runs_without_crashing():
     p = _base_params(ENSURE_SATISFIABLE=True, NUM_MODELS=2)
     generator = GenerateFeatureModel()
 
-    fms = [
-        generator.execute(p, index=index).get_result()
-        for index in range(p.num_models)
-    ]
+    fms = [generator.execute(p, index=index).get_result()
+           for index in range(p.num_models)]
 
     assert len(fms) == 2
 
@@ -595,18 +605,25 @@ def test_constant_seed_and_index_determinism():
     """GenerateFeatureModel.execute must be deterministic on (seed, index)."""
     p = _base_params(SEED=42)
 
-    a = GenerateFeatureModel().execute(
-        p,
-        index=0,
-    ).get_result()
+    a = (
+        GenerateFeatureModel()
+        .execute(
+            p,
+            index=0,
+        )
+        .get_result()
+    )
 
-    b = GenerateFeatureModel().execute(
-        p,
-        index=0,
-    ).get_result()
+    b = (
+        GenerateFeatureModel()
+        .execute(
+            p,
+            index=0,
+        )
+        .get_result()
+    )
 
     assert [f.name for f in a.get_features()] == [
-        f.name for f in b.get_features()
-    ]
+        f.name for f in b.get_features()]
 
     assert len(a.ctcs) == len(b.ctcs)

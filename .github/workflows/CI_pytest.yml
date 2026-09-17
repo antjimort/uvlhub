@@ -19,6 +19,10 @@ jobs:
       MARIADB_HOSTNAME: 127.0.0.1
       MARIADB_PORT: 3306
       FLASK_ENV: testing
+      # Lets splent_framework's ConfigManager/ErrorHandlerManager find app.config / app.errors
+      SPLENT_APP: app
+      # Installed entry-point scripts run without cwd on sys.path; make `app` importable
+      PYTHONPATH: ${{ github.workspace }}
 
     services:
       mariadb:
@@ -44,18 +48,16 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: pyproject.toml
 
-      - name: Delete rosemary editable mode
-        run: sed -i '/rosemary @ file:\/\/\/app/d' requirements.txt
-
-      - name: Install dependencies
+      - name: Install dependencies (pinned in pyproject.toml)
         run: |
           python -m pip install --upgrade pip
+          pip install --pre .
 
       - name: Install fm_generator package
-        # The generator is developed as a local package and imported by
-        # the generator module tests and Pyodide wrapper.
         run: pip install --no-cache-dir -e ./fm_generator
 
-      - name: Run Tests
-        run: pytest app/modules/ --ignore-glob='*selenium*' -m 'not slow'
+      - name: Run tests (fast pyramid — unit + repository + service + integration)
+        run: pytest app/features -m "(unit or repository or service or integration) and not slow"
