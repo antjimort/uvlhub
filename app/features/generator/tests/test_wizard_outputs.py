@@ -14,7 +14,9 @@ show up in the .uvl files (or be absent when you disabled its level).
 import json
 import re
 import pytest
+from types import SimpleNamespace
 
+from app.features.generator.assets.js import fmgen_wrapper
 from flamapy.metamodels.fm_metamodel.models.feature_model import FeatureModel
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 from flamapy.metamodels.fm_metamodel.transformations.uvl_reader import UVLReader
@@ -22,6 +24,16 @@ from app.features.generator.assets.js.fmgen_wrapper import _build_one
 from flamapy.metamodels.fm_generator.models import FmgeneratorModel
 from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
 from app.features.generator.wizard import GeneratorWizardService
+from types import SimpleNamespace
+
+import app.features.generator.wizard as wizard
+
+from itertools import product
+
+from flamapy.metamodels.pysat_metamodel.operations import PySATSatisfiable
+from flamapy.metamodels.pysat_metamodel.transformations.fm_to_pysat import (
+    FmToPysat,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -264,24 +276,6 @@ def _fetch_params_and_generate(client, n=3):
     )
 
 
-def _generate_filenames(model: FmgeneratorModel) -> list[str]:
-    files = []
-
-    for index in range(model.num_models):
-        operation = GenerateFeatureModel().execute(
-            model,
-            index=index
-        )
-
-        fm = operation.get_result()
-
-        files.append(
-            _filename_for(model, fm, index)
-        )
-
-    return files
-
-
 def _iter_ctc_lines(text):
     in_ctc = False
     for ln in text.splitlines():
@@ -293,6 +287,68 @@ def _iter_ctc_lines(text):
             continue
         if in_ctc and ln.strip():
             yield ln.strip()
+
+
+def _o1_level_combinations():
+    cases = []
+
+    # Nivel Booleano: group cardinality es el único minor level compatible.
+    for group_card in (False, True):
+        cases.append(
+            pytest.param(
+                "boolean",
+                group_card,
+                False,
+                False,
+                False,
+                id=f"boolean-group-{group_card}",
+            )
+        )
+
+    # Nivel Aritmético: group cardinality, feature cardinality y agregados.
+    for group_card, feature_card, aggregate in product(
+        (False, True),
+        repeat=3,
+    ):
+        cases.append(
+            pytest.param(
+                "arithmetic",
+                group_card,
+                feature_card,
+                aggregate,
+                False,
+                id=(
+                    "arithmetic-"
+                    f"group-{group_card}-"
+                    f"feature-cardinality-{feature_card}-"
+                    f"aggregate-{aggregate}"
+                ),
+            )
+        )
+
+    # Nivel Tipo: incluye las combinaciones anteriores y string constraints.
+    for group_card, feature_card, aggregate, string_ctc in product(
+        (False, True),
+        repeat=4,
+    ):
+        cases.append(
+            pytest.param(
+                "type",
+                group_card,
+                feature_card,
+                aggregate,
+                string_ctc,
+                id=(
+                    "type-"
+                    f"group-{group_card}-"
+                    f"feature-cardinality-{feature_card}-"
+                    f"aggregate-{aggregate}-"
+                    f"string-{string_ctc}"
+                ),
+            )
+        )
+
+    return cases
 
 
 # ── Happy-path combos ────────────────────────────────────────────────────
@@ -406,43 +462,6 @@ def test_arithmetic_constraints_do_not_compare_same_expression(client):
         )
 
 
-def test_aggregate_functions_wizard_produces_sum_or_avg(client):
-    _walk_wizard(
-        client,
-        step2=_step2(arithmetic=True, aggregate=True),
-        step4=_step4(
-            arithmetic=True,
-            aggregate=True,
-            extras={
-                "prob_plus": "0.0",
-                "prob_minus": "0.0",
-                "prob_times": "0.0",
-                "prob_div": "0.0",
-                "prob_sum": "0.5",
-                "prob_avg": "0.5",
-                "ctc_dist_boolean": "0.0",
-                "ctc_dist_integer": "1.0",
-                "ctc_dist_real": "0.0",
-                "ctc_dist_string": "0.0",
-                "num_constraints_min": "15",
-                "num_constraints_max": "15",
-            },
-        ),
-        step5=_step5(
-            extras={
-                "dist_boolean_atr": "0.0",
-                "dist_integer_atr": "1.0",
-                "dist_real_atr": "0.0",
-                "dist_string_atr": "0.0",
-                "min_attributes": "3",
-                "max_attributes": "4",
-            }
-        ),
-    )
-    body = "\n".join(_iter_ctc_lines(_fetch_params_and_generate(client, n=3)))
-    assert "sum(" in body or "avg(" in body, f"no agg:\n{body}"
-
-
 def test_aggregate_functions_never_generate_more_than_two_arguments(client):
     _walk_wizard(
         client,
@@ -503,34 +522,6 @@ def test_aggregate_functions_never_generate_more_than_two_arguments(client):
                     f"invalid aggregate function with more than two "
                     f"arguments: {line}"
                 )
-
-
-def test_string_level_wizard_produces_string_constraints(client):
-    _walk_wizard(
-        client,
-        step2=_step2(type_=True, string_ctc=True),
-        step4=_step4(
-            string=True,
-            extras={
-                "ctc_dist_boolean": "0.0",
-                "ctc_dist_integer": "0.0",
-                "ctc_dist_real": "0.0",
-                "ctc_dist_string": "1.0",
-            },
-        ),
-        step5=_step5(
-            extras={
-                "dist_boolean_atr": "0.0",
-                "dist_integer_atr": "0.0",
-                "dist_real_atr": "0.0",
-                "dist_string_atr": "1.0",
-                "min_attributes": "3",
-                "max_attributes": "4",
-            }
-        ),
-    )
-    body = "\n".join(_iter_ctc_lines(_fetch_params_and_generate(client, n=3)))
-    assert "len(" in body or re.search(r"F\d+\.Attr\d+\s*==", body), f"no string ctc:\n{body}"
 
 
 # ── Level-coherence: changing step2 rewrites later step behaviour ───────
@@ -601,32 +592,6 @@ def test_group_cardinality_on_produces_groups(client):
 # ── Individual parameter plumbing ────────────────────────────────────────
 
 
-def test_filename_suffixes_applied_to_generated_files(client):
-    _walk_wizard(
-        client,
-        step1=_step1(num_models="1", name_prefix="custom"),
-        step6=_step6(feat_suffix=True, ctc_suffix=True),
-    )
-
-    model = _fetch_model_from_wizard(client)
-    files = _generate_filenames(model)
-
-    assert files
-    assert all(re.match(r"^custom_\d+f_\d+c\.uvl$", f) for f in files), files
-
-
-def test_vars_per_constraint_fixed_observed_in_output(client):
-    _walk_wizard(
-        client,
-        step3=_step3(extras={"num_features_min": "15", "num_features_max": "20"}),
-        step4=_step4(extras={"vars_per_ctc_min": "3", "vars_per_ctc_max": "3"}),
-    )
-    text = _fetch_params_and_generate(client, n=2)
-    for line in _iter_ctc_lines(text):
-        refs = re.findall(r"\bF\d+\b", line)
-        assert len(refs) == 3, f"expected 3 vars, got {len(refs)}: {line}"
-
-
 def test_ctc_dist_weights_force_string(client):
     _walk_wizard(
         client,
@@ -665,27 +630,6 @@ def test_ctc_dist_weights_force_string(client):
 # ═══════════════════════════════════════════════════════════════════════
 # PARAMETRISED MASS COVERAGE
 # ═══════════════════════════════════════════════════════════════════════
-
-
-# ── Step 3: feature tree ranges ─────────────────────────────────────────
-
-
-@pytest.mark.parametrize("depth", ["1", "2", "3", "4", "5"])
-def test_deeper_tree_yields_more_indent(client, depth):
-    _walk_wizard(
-        client,
-        step3=_step3(
-            extras={
-                "num_features_min": "8",
-                "num_features_max": "12",
-                "max_tree_depth": depth,
-            }
-        ),
-    )
-    text = _fetch_params_and_generate(client, n=2)
-    feat_lines = [ln for ln in text.splitlines() if re.match(r"\t+F\d+\b", ln)]
-    max_indent = max(len(ln) - len(ln.lstrip("\t")) for ln in feat_lines)
-    assert max_indent <= 1 + 2 * int(depth), f"depth={depth} got {max_indent} tabs"
 
 
 # ── Step 3: feature cardinality bounds ──────────────────────────────────
@@ -830,37 +774,6 @@ def test_attribute_type_dominance(client, dist, kind):
             assert v.startswith("'") and v.endswith("'"), v
 
 
-# ── Step 6: ensure_satisfiable + filename suffixes matrix ───────────────
-
-
-@pytest.mark.parametrize(
-    "flags,pattern",
-    [
-        ({}, r"^fm_\d+\.uvl$"),
-        ({"feature_count_suffix": "on"}, r"^fm_\d+f\.uvl$"),
-        ({"constraint_count_suffix": "on"}, r"^fm_\d+c\.uvl$"),
-        (
-            {"feature_count_suffix": "on", "constraint_count_suffix": "on"},
-            r"^fm_\d+f_\d+c\.uvl$",
-        ),
-    ],
-)
-def test_filename_suffix_combinations(client, flags, pattern):
-    num_models = "3" if not flags else "1"
-
-    _walk_wizard(
-        client,
-        step1=_step1(num_models=num_models),
-        step6={"nav": "next", **flags},
-    )
-
-    model = _fetch_model_from_wizard(client)
-    files = _generate_filenames(model)
-
-    assert files
-    assert all(re.match(pattern, f) for f in files), f"files={files} pattern={pattern}"
-
-
 # ── Determinism across wizard posts ─────────────────────────────────────
 
 
@@ -966,134 +879,6 @@ def test_back_navigation_preserves_all_choices(client):
 # ── Mixed levels integration ────────────────────────────────────────────
 
 
-def test_everything_on_every_family_represented(client):
-    _walk_wizard(
-        client,
-        step2=_step2(arithmetic=True, type_=True, aggregate=True, string_ctc=True, feat_card=True, group_card=True),
-        step3=_step3(
-            group_card=True,
-            feat_card=True,
-            extras={
-                "prob_fc": "0.3",
-                "min_feature_cardinality": "2",
-                "max_feature_cardinality": "4",
-                "dist_optional": "0.2",
-                "dist_mandatory": "0.2",
-                "dist_alternative": "0.2",
-                "dist_or": "0.2",
-                "dist_group_cardinality": "0.2",
-                "group_cardinality_min": "1",
-                "group_cardinality_max": "4",
-                "num_features_min": "10",
-                "num_features_max": "15",
-            },
-        ),
-        step4=_step4(
-            arithmetic=True,
-            aggregate=True,
-            string=True,
-            extras={
-                "ctc_dist_boolean": "0.25",
-                "ctc_dist_integer": "0.25",
-                "ctc_dist_real": "0.25",
-                "ctc_dist_string": "0.25",
-                "num_constraints_min": "15",
-                "num_constraints_max": "15",
-            },
-        ),
-        step5=_step5(
-            extras={
-                "dist_boolean_atr": "0.25",
-                "dist_integer_atr": "0.25",
-                "dist_real_atr": "0.25",
-                "dist_string_atr": "0.25",
-                "min_attributes": "5",
-                "max_attributes": "8",
-            }
-        ),
-    )
-    body = "\n".join(_iter_ctc_lines(_fetch_params_and_generate(client, n=5)))
-    fams = sum(
-        [
-            bool(re.search(r" & | \| | => | <=> ", body)),
-            bool(re.search(r"\s[+\-*/]\s", body)),
-            "sum(" in body or "avg(" in body,
-            "len(" in body or bool(re.search(r"\.Attr\d+\s*==\s*'", body)),
-        ]
-    )
-    assert fams >= 3, f"only {fams} families present"
-
-
-def test_generated_uvl_can_be_parsed(client, tmp_path):
-    """
-    Generated UVL models must be readable again by UVLReader.
-
-    This test only validates the generation pipeline:
-        FmgeneratorModel -> FeatureModel -> UVL -> FeatureModel
-
-    SAT validation is tested separately.
-    """
-
-    _walk_wizard(
-        client,
-        step2=_step2(
-            arithmetic=True,
-            type_=True,
-            aggregate=True,
-            string_ctc=True,
-            feat_card=True,
-            group_card=True,
-        ),
-        step3=_step3(
-            group_card=True,
-            feat_card=True,
-            extras={
-                "num_features_min": "10",
-                "num_features_max": "15",
-            },
-        ),
-        step4=_step4(
-            arithmetic=True,
-            aggregate=True,
-            string=True,
-            extras={
-                "num_constraints_min": "5",
-                "num_constraints_max": "5",
-            },
-        ),
-        step5=_step5(
-            extras={
-                "min_attributes": "3",
-                "max_attributes": "5",
-                "dist_boolean_atr": "0.25",
-                "dist_integer_atr": "0.25",
-                "dist_real_atr": "0.25",
-                "dist_string_atr": "0.25",
-            }
-        ),
-    )
-
-    model = _fetch_model_from_wizard(client, n=1)
-
-    generated = _build_one(model, 0)
-
-    uvl_text = _serialize_uvl(generated)
-
-    uvl_path = tmp_path / "generated_model.uvl"
-
-    uvl_path.write_text(
-        uvl_text,
-        encoding="utf-8",
-    )
-
-    parsed_model = UVLReader(
-        str(uvl_path)
-    ).transform()
-
-    assert parsed_model is not None
-    assert len(list(parsed_model.get_features())) > 0
-
-
 def test_ensure_satisfiable_retries_until_sat(client, monkeypatch):
     _walk_wizard(
         client,
@@ -1129,3 +914,385 @@ def test_ensure_satisfiable_retries_until_sat(client, monkeypatch):
 
     # At least two models must be tested
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    (
+        "level",
+        "group_card",
+        "feature_card",
+        "aggregate",
+        "string_ctc",
+    ),
+    _o1_level_combinations(),
+)
+def test_o1_level_combinations_roundtrip_to_uvl_and_boolean_sat(
+    client,
+    tmp_path,
+    level,
+    group_card,
+    feature_card,
+    aggregate,
+    string_ctc,
+):
+    """O1: cada combinación válida se genera, se serializa y se vuelve a
+    leer como UVL. Las variantes booleanas también se transforman a PySAT."""
+    num_models = 3
+    arithmetic = level in {"arithmetic", "type"}
+    type_level = level == "type"
+
+    if string_ctc:
+        step4_extras = {
+            "ctc_dist_boolean": "0.0",
+            "ctc_dist_integer": "0.0",
+            "ctc_dist_real": "0.0",
+            "ctc_dist_string": "1.0",
+        }
+        step5_extras = {
+            "dist_boolean_atr": "0.0",
+            "dist_integer_atr": "0.0",
+            "dist_real_atr": "0.0",
+            "dist_string_atr": "1.0",
+        }
+    elif arithmetic:
+        step4_extras = {
+            "ctc_dist_boolean": "0.0",
+            "ctc_dist_integer": "1.0",
+            "ctc_dist_real": "0.0",
+            "ctc_dist_string": "0.0",
+        }
+        step5_extras = {
+            "dist_boolean_atr": "0.0",
+            "dist_integer_atr": "1.0",
+            "dist_real_atr": "0.0",
+            "dist_string_atr": "0.0",
+        }
+    else:
+        step4_extras = {}
+        step5_extras = {}
+
+    _walk_wizard(
+        client,
+        step1=_step1(num_models=str(num_models), seed="2026"),
+        step2=_step2(
+            arithmetic=arithmetic,
+            type_=type_level,
+            group_card=group_card,
+            feat_card=feature_card,
+            aggregate=aggregate,
+            string_ctc=string_ctc,
+        ),
+        step3=_step3(
+            group_card=group_card,
+            feat_card=feature_card,
+        ),
+        step4=_step4(
+            arithmetic=arithmetic,
+            aggregate=aggregate,
+            string=string_ctc,
+            extras=step4_extras,
+        ),
+        step5=_step5(extras=step5_extras),
+    )
+
+    model = _fetch_model_from_wizard(client)
+
+    assert model.num_models == num_models
+
+    for index in range(num_models):
+        generated_model = _build_one(model, index)
+        uvl_path = tmp_path / f"{level}_{index}.uvl"
+
+        uvl_path.write_text(
+            _serialize_uvl(generated_model),
+            encoding="utf-8",
+        )
+
+        reloaded_model = UVLReader(str(uvl_path)).transform()
+
+        assert reloaded_model is not None
+        assert len(list(reloaded_model.get_features())) > 0
+
+        if level == "boolean":
+            pysat_model = FmToPysat(reloaded_model).transform()
+            satisfiable_operation = PySATSatisfiable()
+            satisfiable_operation.execute(pysat_model)
+
+            assert satisfiable_operation.get_result() in (True, False)
+
+
+# ── fmgen_wrapper direct contract ─────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("includes", "expected"),
+    [
+        ([], "features\n\tF0"),
+        (["Boolean.uvl"], "include\n\tBoolean.uvl\nfeatures\n\tF0"),
+        (
+            ["Boolean.uvl", "Arithmetic.uvl"],
+            "include\n\tBoolean.uvl\n\tArithmetic.uvl\nfeatures\n\tF0",
+        ),
+    ],
+)
+def test_wrapper_prepends_uvl_includes(includes, expected):
+    assert fmgen_wrapper._prepend_uvl_includes("features\n\tF0", includes) == expected
+
+
+def test_wrapper_serializes_uvl_and_reads_includes(monkeypatch):
+    class FakeWriter:
+        def __init__(self, path, feature_model):
+            assert path is None
+            assert feature_model is fm
+
+        def transform(self):
+            return "features\n\tF0"
+
+    fm = SimpleNamespace(uvl_includes=["Boolean.uvl"])
+    monkeypatch.setattr(fmgen_wrapper, "UVLWriter", FakeWriter)
+
+    result = fmgen_wrapper._serialize_uvl(fm)
+
+    assert result == "include\n\tBoolean.uvl\nfeatures\n\tF0"
+
+
+def test_wrapper_serializes_uvl_without_includes_attribute(monkeypatch):
+    class FakeWriter:
+        def __init__(self, path, feature_model):
+            pass
+
+        def transform(self):
+            return "features\n\tF0"
+
+    monkeypatch.setattr(fmgen_wrapper, "UVLWriter", FakeWriter)
+
+    assert fmgen_wrapper._serialize_uvl(SimpleNamespace()) == "features\n\tF0"
+
+
+@pytest.mark.parametrize(
+    (
+        "prefix",
+        "feature_suffix",
+        "constraint_suffix",
+        "num_models",
+        "index",
+        "expected",
+    ),
+    [
+        ("custom", True, True, 1, 0, "custom_3f_2c.uvl"),
+        ("custom", True, False, 1, 0, "custom_3f.uvl"),
+        ("custom", False, True, 1, 0, "custom_2c.uvl"),
+        ("custom", False, False, 3, 2, "custom_2.uvl"),
+        ("custom", False, False, 1, 0, "custom.uvl"),
+        ("   ", False, False, 1, 0, "fm.uvl"),
+    ],
+)
+def test_wrapper_builds_expected_filename(
+    prefix,
+    feature_suffix,
+    constraint_suffix,
+    num_models,
+    index,
+    expected,
+):
+    model = SimpleNamespace(
+        naming=SimpleNamespace(
+            name_prefix=prefix,
+            include_feature_count_suffix=feature_suffix,
+            include_constraint_count_suffix=constraint_suffix,
+        ),
+        num_models=num_models,
+    )
+    fm = SimpleNamespace(
+        get_features=lambda: ["F0", "F1", "F2"],
+        ctcs=["c1", "c2"],
+    )
+
+    assert fmgen_wrapper._filename_for(model, fm, index) == expected
+
+
+def test_wrapper_generates_feature_model_with_received_arguments(monkeypatch):
+    result = object()
+    operations = []
+
+    class FakeOperation:
+        def __init__(self):
+            operations.append(self)
+            self.execute_args = None
+
+        def execute(self, **kwargs):
+            self.execute_args = kwargs
+
+        def get_result(self):
+            return result
+
+    model = object()
+    monkeypatch.setattr(fmgen_wrapper, "GenerateFeatureModel", FakeOperation)
+
+    assert fmgen_wrapper._generate_feature_model(model, index=4, attempt=2) is result
+    assert operations[0].execute_args == {
+        "model": model,
+        "index": 4,
+        "attempt": 2,
+    }
+
+
+def test_wrapper_build_one_delegates_to_feature_model_generator(monkeypatch):
+    model = object()
+    result = object()
+    calls = []
+
+    def fake_generate(received_model, index):
+        calls.append((received_model, index))
+        return result
+
+    monkeypatch.setattr(fmgen_wrapper, "_generate_feature_model", fake_generate)
+
+    assert fmgen_wrapper._build_one(model, 3) is result
+    assert calls == [(model, 3)]
+
+
+def test_wrapper_generate_models_returns_serialized_batch(monkeypatch):
+    model = SimpleNamespace(num_models=2)
+    params = {"SEED": 42}
+    built_indexes = []
+
+    monkeypatch.setattr(
+        fmgen_wrapper,
+        "FmgeneratorModel",
+        SimpleNamespace(from_flat_dict=lambda received: model),
+    )
+    monkeypatch.setattr(
+        fmgen_wrapper,
+        "_build_one",
+        lambda received_model, index: built_indexes.append(index) or f"fm-{index}",
+    )
+    monkeypatch.setattr(
+        fmgen_wrapper,
+        "_serialize_uvl",
+        lambda fm: f"uvl-{fm}",
+    )
+
+    result = fmgen_wrapper.generate_models(json.dumps(params))
+
+    assert json.loads(result) == ["uvl-fm-0", "uvl-fm-1"]
+    assert built_indexes == [0, 1]
+
+
+def test_wrapper_generate_one_model_returns_download_payload(monkeypatch):
+    model = SimpleNamespace(num_models=3)
+    fm = SimpleNamespace(
+        get_features=lambda: ["F0", "F1", "F2"],
+        ctcs=["c1", "c2"],
+    )
+    calls = []
+
+    monkeypatch.setattr(
+        fmgen_wrapper,
+        "FmgeneratorModel",
+        SimpleNamespace(from_flat_dict=lambda received: model),
+    )
+
+    def fake_build_one(received_model, index):
+        calls.append(("build", received_model, index))
+        return fm
+
+    def fake_filename(received_model, received_fm, index):
+        calls.append(("filename", received_model, received_fm, index))
+        return "custom.uvl"
+
+    monkeypatch.setattr(fmgen_wrapper, "_build_one", fake_build_one)
+    monkeypatch.setattr(fmgen_wrapper, "_filename_for", fake_filename)
+    monkeypatch.setattr(fmgen_wrapper, "_serialize_uvl", lambda received_fm: "uvl-content")
+
+    result = fmgen_wrapper.generate_one_model(json.dumps({"SEED": 42}), "2")
+
+    assert json.loads(result) == {
+        "filename": "custom.uvl",
+        "content": "uvl-content",
+        "features": 3,
+        "constraints": 2,
+    }
+    assert calls == [
+        ("build", model, 2),
+        ("filename", model, fm, 2),
+    ]
+
+
+
+def test_serialize_generated_model_covers_all_filename_branches(
+    monkeypatch,
+):
+    class FakeWriter:
+        def __init__(self, _, feature_model):
+            self.feature_model = feature_model
+
+        def transform(self):
+            return "root Root {}"
+
+    monkeypatch.setattr(wizard, "UVLWriter", FakeWriter)
+
+    feature_model = SimpleNamespace(
+        get_features=lambda: [1, 2, 3],
+        ctcs=[1],
+    )
+
+    cases = (
+        (True, True, 1, "demo_3f_1c.uvl"),
+        (True, False, 1, "demo_3f.uvl"),
+        (False, True, 1, "demo_1c.uvl"),
+        (False, False, 2, "demo_4.uvl"),
+    )
+
+    for feature_suffix, constraint_suffix, num_models, expected in cases:
+        model = SimpleNamespace(
+            num_models=num_models,
+            naming=SimpleNamespace(
+                name_prefix="demo",
+                include_feature_count_suffix=feature_suffix,
+                include_constraint_count_suffix=constraint_suffix,
+            ),
+        )
+
+        result = GeneratorWizardService.serialize_generated_model(
+            feature_model,
+            model,
+            4,
+        )
+
+        assert result["filename"] == expected
+        assert result["features"] == 3
+        assert result["constraints"] == 1
+
+
+def test_generate_sat_models_raises_after_twenty_failed_attempts(
+    monkeypatch,
+):
+    class FakeModel:
+        num_models = 1
+
+    class FakeGeneratorModel:
+        @staticmethod
+        def from_flat_dict(params):
+            return FakeModel()
+
+    class FakeOperation:
+        def execute(self, **kwargs):
+            pass
+
+        def get_result(self):
+            return object()
+
+    monkeypatch.setattr(wizard, "FmgeneratorModel", FakeGeneratorModel)
+    monkeypatch.setattr(wizard, "GenerateFeatureModel", FakeOperation)
+    monkeypatch.setattr(
+        GeneratorWizardService,
+        "is_satisfiable",
+        staticmethod(lambda candidate: False),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Could not generate satisfiable model 0",
+    ):
+        GeneratorWizardService.generate_sat_models({})

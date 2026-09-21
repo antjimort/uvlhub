@@ -1,9 +1,16 @@
+import pytest
+from flask import session
 from werkzeug.datastructures import MultiDict
 
+import app.features.generator.wizard as wizard
+from app.features.generator.wizard import GeneratorWizardService
 from app.features.generator.wizard import (
     load_step_state,
     save_step_state,
 )
+
+
+pytestmark = pytest.mark.integration
 
 
 def test_save_step_state_preserves_checkbox_false_values(test_client):

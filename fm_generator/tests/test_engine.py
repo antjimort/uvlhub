@@ -17,6 +17,11 @@ from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import (
 )
 from flamapy.metamodels.fm_generator.models import FmgeneratorModel
 from flamapy.metamodels.fm_generator.operations import GenerateFeatureModel
+from flamapy.metamodels.fm_metamodel.models.feature_model import (
+    Feature,
+    FeatureModel,
+    FeatureType,
+)
 
 
 def _base_params(**overrides) -> FmgeneratorModel:
@@ -534,7 +539,7 @@ def test_min_vars_per_constraint_respected():
         assert len(refs) == 4, (
             f"expected 4 vars in constraint, got {len(refs)}: {line}"
         )
-
+        assert len(set(refs)) == 4
 
 def test_prob_not_zero_produces_no_negations():
     p = _base_params(
@@ -627,3 +632,273 @@ def test_constant_seed_and_index_determinism():
         f.name for f in b.get_features()]
 
     assert len(a.ctcs) == len(b.ctcs)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({}, []),
+        (
+            {
+                "GROUP_CARDINALITY": True,
+                "DIST_OPTIONAL": 0.2,
+                "DIST_MANDATORY": 0.2,
+                "DIST_ALTERNATIVE": 0.2,
+                "DIST_OR": 0.2,
+                "DIST_GROUP_CARDINALITY": 0.2,
+            },
+            ["Boolean.group-cardinality"],
+        ),
+        (
+            {
+                "ARITHMETIC_LEVEL": True,
+                "AGGREGATE_FUNCTIONS": True,
+                "PROB_SUM": 0.0,
+                "PROB_SUBSTRACT": 0.0,
+                "PROB_MULTIPLY": 0.0,
+                "PROB_DIVIDE": 0.0,
+                "PROB_SUM_FUNCTION": 0.5,
+                "PROB_AVG_FUNCTION": 0.5,
+            },
+            ["Arithmetic.aggregate-function"],
+        ),
+        (
+            {
+                "ARITHMETIC_LEVEL": True,
+                "FEATURE_CARDINALITY": True,
+            },
+            ["Arithmetic.feature-cardinality"],
+        ),
+        (
+            {
+                "ARITHMETIC_LEVEL": True,
+                "AGGREGATE_FUNCTIONS": True,
+                "FEATURE_CARDINALITY": True,
+                "PROB_SUM": 0.0,
+                "PROB_SUBSTRACT": 0.0,
+                "PROB_MULTIPLY": 0.0,
+                "PROB_DIVIDE": 0.0,
+                "PROB_SUM_FUNCTION": 0.5,
+                "PROB_AVG_FUNCTION": 0.5,
+            },
+            ["Arithmetic.*"],
+        ),
+        (
+            {
+                "TYPE_LEVEL": True,
+                "STRING_CONSTRAINTS": True,
+            },
+            ["Type.string-constraints"],
+        ),
+    ],
+)
+def test_generated_model_declares_correct_uvl_includes(overrides, expected):
+    model = _base_params(**overrides)
+    feature_model = _generate_feature_model(model)
+
+    assert feature_model.uvl_includes == expected
+
+
+@pytest.mark.parametrize(
+    ("selected_type", "expected_type"),
+    [
+        ("FEATURE_DIST_INTEGER", FeatureType.INTEGER),
+        ("FEATURE_DIST_REAL", FeatureType.REAL),
+        ("FEATURE_DIST_STRING", FeatureType.STRING),
+    ],
+)
+def test_feature_distribution_controls_feature_type(
+    selected_type,
+    expected_type,
+):
+    distributions = {
+        "FEATURE_DIST_BOOLEAN": 0.0,
+        "FEATURE_DIST_INTEGER": 0.0,
+        "FEATURE_DIST_REAL": 0.0,
+        "FEATURE_DIST_STRING": 0.0,
+    }
+    distributions[selected_type] = 1.0
+
+    model = _base_params(
+        TYPE_LEVEL=True,
+        ARITHMETIC_LEVEL=True,
+        **distributions,
+    )
+
+    feature_model = _generate_feature_model(model)
+
+    generated_features = [
+        feature
+        for feature in feature_model.get_features()
+        if feature.name != "F0"
+    ]
+
+    assert generated_features
+    assert all(
+        feature.feature_type == expected_type
+        for feature in generated_features
+    )
+
+
+def test_manual_mode_generates_all_supported_attribute_types():
+    attributes = [
+        {
+            "name": "Enabled",
+            "type": "boolean",
+            "value": "true",
+            "attach_probability": 1.0,
+            "use_in_constraints": True,
+        },
+        {
+            "name": "Count",
+            "type": "integer",
+            "min_value": 1,
+            "max_value": 5,
+            "attach_probability": 1.0,
+            "use_in_constraints": True,
+        },
+        {
+            "name": "Price",
+            "type": "real",
+            "min_value": 0.5,
+            "max_value": 2.5,
+            "attach_probability": 1.0,
+            "use_in_constraints": True,
+        },
+        {
+            "name": "Label",
+            "type": "string",
+            "min_value": 2,
+            "max_value": 5,
+            "attach_probability": 1.0,
+            "use_in_constraints": True,
+        },
+    ]
+
+    model = _base_params(
+        RANDOM_ATTRIBUTES=False,
+        MIN_ATTRIBUTES=None,
+        MAX_ATTRIBUTES=None,
+        ATTRIBUTES_LIST=attributes,
+        ATTRIBUTE_ATTACH_PROBS=[1.0, 1.0, 1.0, 1.0],
+        ATTRIBUTE_IN_CONSTRAINTS=[True, True, True, True],
+        ARITHMETIC_LEVEL=True,
+        TYPE_LEVEL=True,
+        STRING_CONSTRAINTS=True,
+    )
+
+    feature_model = _generate_feature_model(model)
+
+    generated_attributes = {
+        attribute.name: attribute
+        for feature in feature_model.get_features()
+        for attribute in getattr(feature, "attributes", [])
+    }
+
+    assert {
+        "Enabled",
+        "Count",
+        "Price",
+        "Label",
+    } <= generated_attributes.keys()
+
+    assert generated_attributes["Enabled"].attribute_type == "boolean"
+    assert generated_attributes["Count"].attribute_type == "integer"
+    assert generated_attributes["Price"].attribute_type == "real"
+    assert generated_attributes["Label"].attribute_type == "string"
+
+
+def test_real_attribute_distribution_generates_real_attributes():
+    model = _base_params(
+        ARITHMETIC_LEVEL=True,
+        ATTR_DIST_BOOLEAN=0.0,
+        ATTR_DIST_INTEGER=0.0,
+        ATTR_DIST_REAL=1.0,
+        ATTR_DIST_STRING=0.0,
+        MIN_ATTRIBUTES=3,
+        MAX_ATTRIBUTES=3,
+    )
+
+    feature_model = _generate_feature_model(model)
+
+    attributes = [
+        attribute
+        for feature in feature_model.get_features()
+        for attribute in getattr(feature, "attributes", [])
+    ]
+
+    assert len(attributes) == 3
+    assert all(attribute.attribute_type == "real" for attribute in attributes)
+
+
+def test_zero_len_probability_generates_string_equality_constraints():
+    model = _base_params(
+        TYPE_LEVEL=True,
+        STRING_CONSTRAINTS=True,
+        FEATURE_DIST_BOOLEAN=0.0,
+        FEATURE_DIST_INTEGER=0.0,
+        FEATURE_DIST_REAL=0.0,
+        FEATURE_DIST_STRING=1.0,
+        ATTR_DIST_BOOLEAN=0.0,
+        ATTR_DIST_INTEGER=0.0,
+        ATTR_DIST_REAL=0.0,
+        ATTR_DIST_STRING=1.0,
+        CTC_DIST_BOOLEAN=0.0,
+        CTC_DIST_INTEGER=0.0,
+        CTC_DIST_REAL=0.0,
+        CTC_DIST_STRING=1.0,
+        PROB_LEN_FUNCTION=0.0,
+        MIN_CONSTRAINTS=8,
+        MAX_CONSTRAINTS=8,
+    )
+
+    body = "\n".join(
+        _iter_constraint_lines(_run(model, n=3))
+    )
+
+    assert "len(" not in body
+    assert "==" in body
+
+
+def test_relation_kinds_create_expected_cardinalities():
+    generator = GenerateFeatureModel()
+    generator.model = _base_params(GROUP_CARDINALITY=True)
+
+    parent = Feature("Parent")
+    children = [
+        Feature("Child1"),
+        Feature("Child2"),
+        Feature("Child3"),
+    ]
+
+    mandatory = generator._create_relation(parent, children, "mand")
+    assert len(mandatory) == 3
+    assert all(
+        relation.card_min == 1 and relation.card_max == 1
+        for relation in mandatory
+    )
+
+    optional = generator._create_relation(parent, children, "opt")
+    assert len(optional) == 3
+    assert all(
+        relation.card_min == 0 and relation.card_max == 1
+        for relation in optional
+    )
+
+    alternative = generator._create_relation(parent, children, "alt")
+    assert len(alternative) == 1
+    assert (
+        alternative[0].card_min,
+        alternative[0].card_max,
+    ) == (1, 1)
+
+    or_relation = generator._create_relation(parent, children, "or")
+    assert len(or_relation) == 1
+    assert (
+        or_relation[0].card_min,
+        or_relation[0].card_max,
+    ) == (1, 3)
+
+    group = generator._create_relation(parent, children, "group")
+    assert len(group) == 1
+    assert 1 <= group[0].card_min <= group[0].card_max <= 3
