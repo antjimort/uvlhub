@@ -707,7 +707,8 @@ class GenerateFeatureModel(Operation):
     def _group_keys_by_feature(self, keys: list[str]) -> dict[str, list[str]]:
         groups: dict[str, list[str]] = {}
 
-        for key in keys:
+        # Elimina duplicados y estabiliza el orden entre ejecuciones.
+        for key in sorted(set(keys)):
             feature_id = self._feature_id_from_key(key)
             groups.setdefault(feature_id, []).append(key)
 
@@ -1348,9 +1349,9 @@ class GenerateFeatureModel(Operation):
                 for feature, attribute in filtered_str_attrs
             ]
 
-            bool_groups = self._group_keys_by_feature(list(set(bool_pool)))
-            num_groups = self._group_keys_by_feature(list(set(num_pool)))
-            str_groups = self._group_keys_by_feature(list(set(str_pool)))
+            bool_groups = self._group_keys_by_feature(bool_pool)
+            num_groups = self._group_keys_by_feature(num_pool)
+            str_groups = self._group_keys_by_feature(str_pool)
 
             len_pool: list[str] = []
 
@@ -1365,7 +1366,7 @@ class GenerateFeatureModel(Operation):
                     for feature, attribute in filtered_str_attrs
                 )
 
-            len_groups = self._group_keys_by_feature(list(set(len_pool)))
+            len_groups = self._group_keys_by_feature(len_pool)
             numeric_len_groups = self._filter_len_groups_for_numeric_use(
                 len_groups,
                 self.model.constraints.prob_len_function,

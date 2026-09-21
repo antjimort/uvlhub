@@ -993,6 +993,9 @@ def test_o1_level_combinations_roundtrip_to_uvl_and_boolean_sat(
             extras=step4_extras,
         ),
         step5=_step5(extras=step5_extras),
+        step6=_step6(
+            ensure_satisfiable=level == "boolean",
+        ),
     )
 
     model = _fetch_model_from_wizard(client)
