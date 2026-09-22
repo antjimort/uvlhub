@@ -35,7 +35,7 @@
         <div id="random-attributes-settings">
             {{ range_field('min_attributes', 'max_attributes', 'Number of attributes',
                 'Min / Max number of attributes sampled per model when the random mode is on.',
-                values, errors, default_min=1, default_max=5, hard_min=1, hard_max=10000) }}
+                values, errors, default_min=1, default_max=5, hard_min=0, hard_max=1000) }}
             <div class="text-gray-600 fs-7 mb-5">Min must be ≤ Max.</div>
 
             {{ section('Attribute type distribution',

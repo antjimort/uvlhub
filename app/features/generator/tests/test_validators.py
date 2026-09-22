@@ -195,7 +195,7 @@ def test_step4_rejects_invalid_constraint_type_distribution():
 @pytest.mark.parametrize(
     ("overrides", "field"),
     [
-        ({"min_attributes": "0"}, "min_attributes"),
+        ({"min_attributes": "-1"}, "min_attributes"),
         ({"max_attributes": "0"}, "max_attributes"),
         ({"min_attributes": "5", "max_attributes": "1"}, "max_attributes"),
         ({"min_attributes": "invalid"}, "min_attributes"),

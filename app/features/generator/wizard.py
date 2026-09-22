@@ -625,15 +625,15 @@ def validate_step5_form(form, params_dict=None):
     if random_checked:
         try:
             min_attr = int(form.get("min_attributes", "").strip())
-            if not (1 <= min_attr <= 1000):
-                errors["min_attributes"] = "Min. attributes must be between 1 and 1000."
+            if not (0 <= min_attr <= 1000):
+                errors["min_attributes"] = "Min. attributes must be between 0 and 1000."
         except Exception:
             min_attr = None
             errors["min_attributes"] = "Min. attributes must be an integer."
         try:
             max_attr = int(form.get("max_attributes", "").strip())
-            if not (1 <= max_attr <= 1000):
-                errors["max_attributes"] = "Max. attributes must be between 1 and 1000."
+            if not (0 <= max_attr <= 1000):
+                errors["max_attributes"] = "Max. attributes must be between 0 and 1000."
         except Exception:
             max_attr = None
             errors["max_attributes"] = "Max. attributes must be an integer."
