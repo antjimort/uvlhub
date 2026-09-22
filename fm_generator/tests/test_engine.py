@@ -22,6 +22,8 @@ from flamapy.metamodels.fm_metamodel.models.feature_model import (
     FeatureModel,
     FeatureType,
 )
+from flamapy.core.discover import DiscoverMetamodels
+
 
 
 def _base_params(**overrides) -> FmgeneratorModel:
@@ -902,3 +904,38 @@ def test_relation_kinds_create_expected_cardinalities():
     group = generator._create_relation(parent, children, "group")
     assert len(group) == 1
     assert 1 <= group[0].card_min <= group[0].card_max <= 3
+
+
+def test_generate_feature_model_is_discoverable_by_flamapy():
+    """Flamapy must discover and execute the plugin operation."""
+    discovered_operations = DiscoverMetamodels().get_operations()
+
+    if isinstance(discovered_operations, dict):
+        discovered_operations = discovered_operations.values()
+
+    generate_operation = next(
+        (
+            operation
+            for operation in discovered_operations
+            if (
+                operation.__name__
+                if isinstance(operation, type)
+                else operation.__class__.__name__
+            )
+            == "GenerateFeatureModel"
+        ),
+        None,
+    )
+
+    assert generate_operation is not None
+
+    operation = (
+        generate_operation()
+        if isinstance(generate_operation, type)
+        else generate_operation
+    )
+
+    result = operation.execute(_base_params()).get_result()
+
+    assert isinstance(result, FeatureModel)
+    assert result.root is not None
