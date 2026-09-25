@@ -4,7 +4,6 @@
   <a href="">[![Pytest Testing Suite](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_pytest.yml/badge.svg?branch=main)](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_pytest.yml)</a>
   <a href="">[![Commits Syntax Checker](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_commits.yml/badge.svg?branch=main)](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_commits.yml)</a>
   <a href="">[![Lint](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_lint.yml/badge.svg?branch=main)](https://github.com/diverso-lab/uvlhub/actions/workflows/CI_lint.yml)</a>
-<a href="https://doi.org/10.5281/zenodo.22963634"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22963634.svg" alt="DOI"></a>
 <a href="https://zenodo.org/records/22963634"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22963634.svg" alt="Zenodo"></a>
 
 </div>
