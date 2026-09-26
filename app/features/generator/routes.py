@@ -14,7 +14,7 @@ is independent of the others.
 
 import os
 
-from flask import jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from flask import jsonify, current_app, redirect, render_template, request, send_from_directory, session, url_for
 
 from app.features.generator import generator_bp
 from app.features.generator.wizard import (
@@ -449,32 +449,38 @@ def get_params_json():
     return jsonify(params)
 
 
-@generator_bp.route(
-    "/generator/random/generate-sat",
-    methods=["POST"]
-)
+@generator_bp.route("/generator/random/generate-sat", methods=["POST"])
 def generate_sat():
-
     data = request.get_json()
 
     if not data:
         return jsonify({
-            "error": "Missing generation parameters"
+            "code": "MISSING_PARAMETERS",
+            "error": "Missing generation parameters.",
         }), 400
 
-
-    from app.features.generator.wizard import GeneratorWizardService
+    from app.features.generator.wizard import (
+        GeneratorWizardService,
+        SatisfiableModelGenerationError,
+    )
 
     try:
         models = GeneratorWizardService.generate_sat_models(data)
+        return jsonify({"models": models})
 
+    except SatisfiableModelGenerationError as exc:
         return jsonify({
-            "models": models
-        })
+            "code": "SAT_MODEL_NOT_FOUND",
+            "error": str(exc),
+            "model_number": exc.model_number,
+            "attempts": exc.attempts,
+        }), 422
 
-    except Exception as e:
+    except Exception:
+        current_app.logger.exception("SAT-checked generation failed.")
         return jsonify({
-            "error": str(e)
+            "code": "SAT_GENERATION_ERROR",
+            "error": "SAT-checked generation could not be completed.",
         }), 500
 
 

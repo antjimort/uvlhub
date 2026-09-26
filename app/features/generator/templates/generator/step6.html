@@ -73,8 +73,21 @@
                     <span class="badge badge-light-primary fs-7 fw-bold" id="gen-counter">0 / 0</span>
                 </div>
             </div>
+
             <div class="progress h-6px rounded-pill mb-4">
                 <div id="gen-bar" class="progress-bar bg-primary rounded-pill" role="progressbar" style="width: 0%;"></div>
+            </div>
+            <div id="gen-error-alert"
+                class="alert alert-danger d-flex align-items-start py-4 mb-4"
+                role="alert"
+                hidden>
+                <i class="ki-duotone ki-information-5 fs-2 me-3 text-danger mt-1">
+                    <span class="path1"></span><span class="path2"></span><span class="path3"></span>
+                </i>
+                <div>
+                    <strong>Generation stopped.</strong>
+                    <span id="gen-error-message"></span>
+                </div>
             </div>
             <div id="gen-results" class="gen-results"></div>
             <div id="gen-actions" class="text-center mt-6" style="display: none;">
@@ -112,6 +125,9 @@
         animation: genFade 180ms ease-out;
     }
     @keyframes genFade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+    #gen-error-alert[hidden] {
+        display: none !important;
+    }
 </style>
 
 <!-- IMPORTANT: inline inside #stepper_generator so wizard-spa.js's reinit()
@@ -164,6 +180,8 @@
     const actions     = document.getElementById("gen-actions");
     const downloadBtn = document.getElementById("download-btn");
     const regenBtn    = document.getElementById("regenerate-btn");
+    const errorAlert = document.getElementById("gen-error-alert");
+    const errorMessage = document.getElementById("gen-error-message");
 
     let generatedFiles = [];   // kept across runs so Download stays usable
     let generatedParams = null; // params snapshot at generation time
@@ -342,6 +360,8 @@
         bar.classList.add("bg-primary");
         actions.style.display = "none";
         generatedFiles = [];
+        errorAlert.hidden = true;
+        errorMessage.textContent = "";
     }
 
     function markDone(n, elapsedS) {
@@ -362,6 +382,20 @@
         appendErrorRow(i, err);
         // Keep whatever we had so the user can still download partial results.
         if (generatedFiles.length > 0) actions.style.display = "";
+    }
+
+    function userFacingGenerationError(error) {
+        if (error.code === "SAT_MODEL_NOT_FOUND") {
+            return `The generator could not find a model confirmed as satisfiable for model ${
+                error.modelNumber
+            } after ${error.attempts} attempts. This does not prove that the configuration is unsatisfiable. Try simplifying the configuration or reducing the constraints, then retry. You can also turn off "Ensure satisfiable".`;
+        }
+
+        if (error.code === "SAT_GENERATION_ERROR") {
+            return 'SAT-checked generation could not be completed. Please try again. If the problem continues, review the configuration or turn off "Ensure satisfiable".';
+        }
+
+        return "Model generation could not be completed. Please try again.";
     }
 
     async function runGeneration() {
@@ -446,13 +480,22 @@
                 }
             );
 
-            const data = await response.json();
-
-            if (!response.ok){
-                throw new Error(data.error);
+            let data = {};
+            try {
+                data = await response.json();
+            } catch {
+                // The response may not contain JSON, for example after a server error.
             }
 
-            for (const result of data.models){
+            if (!response.ok) {
+                const error = new Error(data.error || "SAT-checked generation failed.");
+                error.code = data.code || "GENERATION_FAILED";
+                error.modelNumber = data.model_number;
+                error.attempts = data.attempts;
+                throw error;
+            }
+
+            for (const result of data.models) {
                 generatedFiles.push(result);
                 appendVariantRow(result);
             }
@@ -481,9 +524,19 @@
             markDone(n, (performance.now() - t0) / 1000);
         } catch (e) {
             console.error(e);
-            statusEl.textContent = `error: ${e.message || e}`;
-            bar.classList.remove("bg-primary");
+
+            panel.style.display = "";
+            panelTitle.textContent = "Generation stopped";
+            statusEl.textContent = "failed";
+            errorMessage.textContent = ` ${userFacingGenerationError(e)}`;
+            errorAlert.hidden = false;
+
+            bar.classList.remove("bg-primary", "bg-success");
             bar.classList.add("bg-danger");
+
+            if (generatedFiles.length > 0) {
+                actions.style.display = "";
+            }
         } finally {
             generateBtn.disabled = false;
         }

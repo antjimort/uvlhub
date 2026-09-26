@@ -63,7 +63,9 @@ class GenerateFeatureModel(Operation):
 
     def _build_uvl_includes(self) -> list[str]:
         includes: list[str] = []
-
+        if self.model.ensure_satisfiable:
+            return []
+        
         if self.model.levels.group_cardinality:
             includes.append("Boolean.group-cardinality")
 
@@ -88,6 +90,10 @@ class GenerateFeatureModel(Operation):
     # -------------------------------------------------------------------------
 
     def _maybe_apply_feature_type(self, feature: Feature) -> None:
+        if self.model.ensure_satisfiable:
+            feature.feature_type = FeatureType.BOOLEAN
+            setattr(feature, "is_type_level_typed", False)
+            return
         if not self.model.levels.type_level:
             feature.feature_type = FeatureType.BOOLEAN
             setattr(feature, "is_type_level_typed", False)
@@ -124,26 +130,39 @@ class GenerateFeatureModel(Operation):
         return "bool"
 
     def _select_relation_types(self, total: int) -> list[str]:
-        return random.choices(
-            population=["mand", "opt", "alt", "or", "group"],
-            weights=[
-                self.model.hierarchy.dist_mandatory,
-                self.model.hierarchy.dist_optional,
-                self.model.hierarchy.dist_alternative,
-                self.model.hierarchy.dist_or,
-                self.model.hierarchy.dist_group_cardinality,
-            ],
-            k=total,
-        )
+        population = ["mand", "opt", "alt", "or", "group"]
+        weights = [
+            self.model.hierarchy.dist_mandatory,
+            self.model.hierarchy.dist_optional,
+            self.model.hierarchy.dist_alternative,
+            self.model.hierarchy.dist_or,
+            self.model.hierarchy.dist_group_cardinality,
+        ]
+
+        if self.model.ensure_satisfiable:
+            population = population[:-1]
+            weights = weights[:-1]
+
+            # If all configured weight was assigned to group cardinality,
+            # use mandatory relations for this Boolean-only generation.
+            if sum(weights) <= 0:
+                weights = [1.0, 0.0, 0.0, 0.0]
+
+        return random.choices(population, weights=weights, k=total)
 
     def _determine_group_size(self, pool_size: int) -> int:
+        if self.model.ensure_satisfiable:
+            # Ordinary alternative/OR groups do not use the configured
+            # group-cardinality limit.
+            return random.randint(1, min(6, pool_size))
+
         return random.randint(
             1,
             min(self.model.hierarchy.group_cardinality_max, pool_size),
         )
 
     def _maybe_apply_feature_cardinality(self, feature: Feature) -> None:
-        if not self.model.levels.feature_cardinality:
+        if self.model.ensure_satisfiable or not self.model.levels.feature_cardinality:
             return
 
         if random.random() >= self.model.features.prob_feature_cardinality:
@@ -243,6 +262,8 @@ class GenerateFeatureModel(Operation):
 
     def _generate_hierarchy(self) -> tuple[FeatureModel, list[Feature]]:
         root = Feature(name="F0")
+        if self.model.ensure_satisfiable:
+            self._maybe_apply_feature_type(root)
         fm = FeatureModel(root=root)
 
         num_features = random.randint(
@@ -294,6 +315,8 @@ class GenerateFeatureModel(Operation):
     # -------------------------------------------------------------------------
 
     def _assign_attributes(self, features: list[Feature]) -> None:
+        if self.model.ensure_satisfiable:
+            return
         if self.model.attributes.random_attributes:
             self._generate_random_attributes(features)
         else:

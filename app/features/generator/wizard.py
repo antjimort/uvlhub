@@ -24,6 +24,18 @@ logger = logging.getLogger(__name__)
 
 TOTAL_STEPS = 6
 
+SAT_MAX_ATTEMPTS = 20
+
+
+class SatisfiableModelGenerationError(RuntimeError):
+    def __init__(self, model_number: int, attempts: int) -> None:
+        self.model_number = model_number
+        self.attempts = attempts
+        super().__init__(
+            f"No satisfiable model found for model {model_number} "
+            f"after {attempts} attempts."
+        )
+
 # ─── Wizard configuration values ─────────────────────────────────────────
 
 step2_checkbox_fields = [
@@ -1395,19 +1407,17 @@ class GeneratorWizardService:
     @staticmethod
     def generate_sat_models(params_dict):
         logger.warning("BACKEND SAT GENERATION ACTIVATED")
-        model = FmgeneratorModel.from_flat_dict(
-            params_dict
-        )
+        sat_params = dict(params_dict)
+        sat_params["ENSURE_SATISFIABLE"] = True
+        model = FmgeneratorModel.from_flat_dict(sat_params)
         results = []
 
         for index in range(model.num_models):
             fm = None
             attempt = 0
 
-            while attempt < 20:
-                logger.warning(
-                    f"Model {index}, attempt {attempt}"
-                )
+            while attempt < SAT_MAX_ATTEMPTS:
+                logger.warning(f"Model {index}, attempt {attempt}")
                 operation = GenerateFeatureModel()
                 operation.execute(
                     model=model,
@@ -1423,8 +1433,9 @@ class GeneratorWizardService:
                 attempt += 1
 
             if fm is None:
-                raise RuntimeError(
-                    f"Could not generate satisfiable model {index}"
+                raise SatisfiableModelGenerationError(
+                    model_number=index + 1,
+                    attempts=SAT_MAX_ATTEMPTS,
                 )
 
             results.append(

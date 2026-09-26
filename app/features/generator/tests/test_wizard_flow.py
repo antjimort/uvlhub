@@ -503,19 +503,32 @@ def test_generate_sat_returns_400_without_json(client):
     response = client.post("/generator/random/generate-sat", json={})
 
     assert response.status_code == 400
-    assert response.get_json() == {"error": "Missing generation parameters"}
+    assert response.get_json() == {
+        "error": "Missing generation parameters.",
+        "code": "MISSING_PARAMETERS",
+    }
 
 
 def test_generate_sat_returns_500_when_generation_fails(client, monkeypatch):
     def fail(data):
         raise RuntimeError("generation failed")
 
-    monkeypatch.setattr(routes.GeneratorWizardService, "generate_sat_models", staticmethod(fail))
+    monkeypatch.setattr(
+        routes.GeneratorWizardService,
+        "generate_sat_models",
+        staticmethod(fail),
+    )
 
-    response = client.post("/generator/random/generate-sat", json={"SEED": 42})
+    response = client.post(
+        "/generator/random/generate-sat",
+        json={"SEED": 42},
+    )
 
     assert response.status_code == 500
-    assert response.get_json() == {"error": "generation failed"}
+    assert response.get_json() == {
+        "error": "SAT-checked generation could not be completed.",
+        "code": "SAT_GENERATION_ERROR",
+    }
 
 
 # -- Live summary endpoint -------------------------------------------------

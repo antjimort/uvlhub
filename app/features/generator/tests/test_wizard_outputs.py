@@ -1295,7 +1295,7 @@ def test_generate_sat_models_raises_after_twenty_failed_attempts(
     )
 
     with pytest.raises(
-        RuntimeError,
-        match="Could not generate satisfiable model 0",
+        wizard.SatisfiableModelGenerationError,
+        match=r"No satisfiable model found for model 1 after 20 attempts",
     ):
         GeneratorWizardService.generate_sat_models({})
